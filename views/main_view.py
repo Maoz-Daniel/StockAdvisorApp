@@ -1,8 +1,11 @@
+import sys
+
+
 from PySide6.QtWidgets import (
     QMainWindow, QLabel, QVBoxLayout, QWidget, QPushButton, QMenuBar, QStatusBar,
     QHBoxLayout, QTableWidget, QTableWidgetItem, QDateEdit, QComboBox, QMenu,
     QHeaderView, QFrame, QTabWidget, QGraphicsDropShadowEffect, QApplication, QScrollArea,
-    QMessageBox
+    QMessageBox, QSizePolicy
 )
 from PySide6.QtGui import QAction, QColor
 from PySide6.QtCore import Qt, QDate, QSize
@@ -11,6 +14,7 @@ from buy_order_view import BuyOrderWindow
 from sell_order_view import SellOrderWindow
 from ai_advisor_view import AIAdvisorWindow
 from trade_history_view import TradeHistoryWindow
+
 
 
 class MainView(QMainWindow):
@@ -29,87 +33,95 @@ class MainView(QMainWindow):
 
         # 📌 עיצוב כללי עם הכחולים החדשים (gradient #2956B2-#4A7CE0, כפתורים #2956B2→#3A6ED5 וכו')
         self.setStyleSheet("""
-            QMainWindow, QWidget {
-                font-family: 'Segoe UI', 'Roboto', sans-serif;
-                /* רקע כללי נשאר כמו במקור - אפור בהיר (#D0D4DA). אם תרצה להחליף ל-F0F5FF, אפשר. */
-                background-color: #F0F5FF;
-            }
-            QLabel {
-                color: #2C3E50;
-            }
+    QMainWindow, QWidget {
+        font-family: 'Segoe UI', 'Roboto', sans-serif;
+        background-color: #F0F5FF;
+    }
+    QLabel {
+        color: #2C3E50;
+    }
 
-            /* סטטוס-בר עם גרדיאנט בכחול כהה */
-            QStatusBar {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                           stop:0 #2956B2, stop:1 #4A7CE0);
-                color: white;
-                padding: 8px;
-                font-size: 14px;
-            }
+    /* שינוי צבע ה-Menubar לכחול */
+    QMenuBar {
+        background-color: #2956B2;
+        color: white;
+        font-size: 15px;
+        padding: 8px;
+    }
+    QMenuBar::item {
+        padding: 6px 12px;
+    }
+    QMenuBar::item:selected {
+        background-color: #3A6ED5;
+    }
 
-            /* כפתורים בכחול #2956B2, ועובר ל-#3A6ED5 בהובר */
-            QPushButton {
-                font-size: 15px;
-                font-weight: bold;
-                border-radius: 6px;
-                padding: 12px;
-                min-width: 160px;
-                background-color: #2956B2; /* במקום #2C82D5 */
-                color: white;
-                border: none;
-            }
-            QPushButton:hover {
-                background-color: #3A6ED5; /* במקום #2371BA */
-            }
+    /* סטטוס-בר עם גרדיאנט בכחול כהה */
+    QStatusBar {
+        background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                   stop:0 #2956B2, stop:1 #4A7CE0);
+        color: white;
+        padding: 8px;
+        font-size: 14px;
+    }
+                           
+    QScrollArea {
+        border: none;
+        background-color: transparent;
+    }
+    QScrollBar:vertical {
+        background-color: #F0F5FF;
+        width: 14px;
+        margin: 0px;
+    }
+    QScrollBar::handle:vertical {
+        background-color: #B8C9E6;
+        min-height: 30px;
+        border-radius: 7px;
+    }
+    QScrollBar::handle:vertical:hover {
+        background-color: #97B0D9;
+    }
+    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+        height: 0px;
+    }
 
-            /* טבלת מניות */
-            QTableWidget {
-                background-color: #F2F4F6;
-                alternate-background-color: #E9ECF0;
-                border: 1px solid #CCD1D9;
-                border-radius: 5px;
-                gridline-color: #E0E6ED;
-                selection-background-color: #D0E8F2;
-                selection-color: #2C3E50;
-            }
-            QTableWidget::item {
-                padding: 10px;
-            }
-            QTableWidget::item:selected {
-                background-color: #D0E8F2;
-            }
+    /* כפתורים בכחול */
+    QPushButton {
+        font-size: 15px;
+        font-weight: bold;
+        border-radius: 6px;
+        padding: 12px;
+        min-width: 160px;
+        background-color: #2956B2;
+        color: white;
+        border: none;
+    }
+    QPushButton:hover {
+        background-color: #3A6ED5;
+    }
 
-            /* כותרות העמודות בכחול #2956B2 */
-            QHeaderView::section {
-                background-color: #2956B2;  /* במקום #1F3B73 */
-                color: white;
-                padding: 10px;
-                border: none;
-                font-weight: bold;
-            }
+    QTableWidget {
+    font-family: 'Segoe UI', 'Arial', sans-serif;
+    font-size: 14px;
+    font-weight: medium;
+    background-color: #F2F4F6;
+    alternate-background-color: #E9ECF0;
+    border: 1px solid #CCD1D9;
+    border-radius: 5px;
+    gridline-color: #E0E6ED;
+    selection-background-color: #D0E8F2;
+    selection-color: #2C3E50;
+}
 
-            /* מסגרת הטאבים בכחול כהה (#2956B2), רקע הטאב */
-            QTabWidget::pane {
-                border: 1px solid #2956B2;  /* במקום #1F3B73 */
-                border-radius: 5px;
-                background-color: #F2F4F6;
-            }
-            QTabBar::tab {
-                background-color: #E9ECF0;
-                border: 1px solid #CCD1D9;
-                border-bottom: none;
-                border-top-left-radius: 5px;
-                border-top-right-radius: 5px;
-                padding: 10px 20px;
-                margin-right: 2px;
-                color: #2C3E50;
-            }
-            QTabBar::tab:selected {
-                background-color: #F2F4F6;
-                border-bottom: 2px solid #2956B2; /* במקום #1F3B73 */
-                font-weight: bold;
-            }
-        """)
+    /* כותרות עמודות בכחול */
+    QHeaderView::section {
+        background-color: #2956B2;
+        color: white;
+        padding: 10px;
+        border: none;
+        font-weight: bold;
+    }
+""")
 
         # 🔹 **יצירת תפריט עליון (MenuBar)**
         self.menu_bar = QMenuBar(self)
@@ -165,7 +177,7 @@ class MainView(QMainWindow):
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
                            stop:0 #2956B2, stop:1 #4A7CE0);
                 border-radius: 10px;
-                padding: 15px;
+                padding: 10px;
             }
         """)
         header_layout = QVBoxLayout(self.header_frame)
@@ -177,6 +189,16 @@ class MainView(QMainWindow):
         header_layout.addWidget(self.label)
         self.main_layout.addWidget(self.header_frame)
 
+       
+        self.subtext_label = QLabel("Your smart investment companion.")
+        self.subtext_label.setAlignment(Qt.AlignCenter)
+        self.subtext_label.setAlignment(Qt.AlignLeft)  # יישור שמאלה
+        self.subtext_label.setStyleSheet("font-size: 16px; font-weight: normal; color: #E0E0E0;")
+        
+
+
+        header_layout.addWidget(self.subtext_label)
+
         # 🔹 **אזור כפתורים**
         self.create_buttons()
 
@@ -186,12 +208,11 @@ class MainView(QMainWindow):
         # 🔹 **התאמה לגודל דינמי וגלילה**
         container = QWidget()
         container.setLayout(self.main_layout)
-        container.setMaximumWidth(1200)
+        # הסרת ההגבלה של הרוחב המקסימלי
+        # container.setMaximumWidth(1200)  <-- להסיר שורה זו
 
         outer_layout = QHBoxLayout()
-        outer_layout.addStretch()
-        outer_layout.addWidget(container)
-        outer_layout.addStretch()
+        outer_layout.addWidget(container)  # להסיר addStretch()
 
         central_widget = QWidget()
         central_widget.setLayout(outer_layout)
@@ -261,7 +282,7 @@ class MainView(QMainWindow):
 
         portfolio_tab = QWidget()
         portfolio_layout = QVBoxLayout(portfolio_tab)
-        portfolio_layout.setContentsMargins(20, 20, 20, 20)
+        portfolio_layout.setContentsMargins(5, 5, 5, 5)
 
         portfolio_header = QLabel("My Portfolio")
         portfolio_header.setStyleSheet("font-size: 20px; font-weight: bold; color: #2C3E50;")
@@ -269,8 +290,12 @@ class MainView(QMainWindow):
         portfolio_layout.addWidget(portfolio_header)
 
         self.stock_table = QTableWidget()
-        self.stock_table.setRowCount(5)
+        self.stock_table.setRowCount(5)  # הגדלת מספר השורות כברירת מחדל
         self.stock_table.setColumnCount(5)
+        self.stock_table.setMinimumHeight(400)  # הגדלת גובה הטבלה
+        self.stock_table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)  # התרחבות אוטומטית
+        self.stock_table.verticalHeader().setSectionResizeMode(QHeaderView.Stretch)  # מתיחת השורות כך שלא ייחתכו
+
         self.stock_table.setHorizontalHeaderLabels(["Stock", "Current Price", "Daily Change", "Quantity", "Portfolio Value"])
         self.stock_table.setAlternatingRowColors(True)
         self.stock_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
@@ -309,6 +334,8 @@ class MainView(QMainWindow):
 
         portfolio_layout.addWidget(self.stock_table)
         self.tabs.addTab(portfolio_tab, "Portfolio")
+        self.tabs.setMinimumSize(900, 500)  # כך שהטאב לא יגביל את גובה הטבלה
+
 
         self.main_layout.addWidget(self.tabs)
 
