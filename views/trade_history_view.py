@@ -523,37 +523,6 @@ class TradeHistoryWindow(QMainWindow):
         table_shadow.setOffset(0, 2)
         self.table.setGraphicsEffect(table_shadow)
 
-        # נתוני דמו משופרים - כולל טור "סה"כ"
-        demo_data = [
-            ("15/03/2024", "AAPL", "Buy", "15", "$182.50", "$2,737.50"),
-            ("10/03/2024", "AMZN", "Buy", "8", "$178.60", "$1,428.80"),
-            ("05/03/2024", "META", "Buy", "10", "$485.30", "$4,853.00"),
-            ("01/03/2024", "AAPL", "Buy", "10", "$175.50", "$1,755.00"),
-            ("25/02/2024", "NFLX", "Sell", "5", "$625.40", "$3,127.00"),
-            ("15/02/2024", "GOOGL", "Sell", "2", "$2,802.00", "$5,604.00"),
-            ("10/02/2024", "MSFT", "Buy", "5", "$410.25", "$2,051.25"),
-            ("01/02/2024", "TSLA", "Buy", "12", "$165.30", "$1,983.60")
-        ]
-
-        for row, row_data in enumerate(demo_data):
-            for col, item in enumerate(row_data):
-                table_item = QTableWidgetItem(item)
-                table_item.setTextAlignment(Qt.AlignCenter)
-                
-                # סגנון לטור הפעולה (Buy/Sell)
-                if col == 2:
-                    table_item.setForeground(QColor("#10B981") if item == "Buy" else QColor("#EF4444"))
-                    table_item.setFont(QFont("Segoe UI", 9, QFont.Bold))
-                
-                # סגנון לעמודת מחיר
-                if col == 4 or col == 5:
-                    # הדגשת מחירים
-                    table_item.setFont(QFont("Segoe UI", 9, QFont.Bold))
-                    
-                self.table.setItem(row, col, table_item)
-        
-        main_layout.addWidget(self.table)
-
         # 🔹 אזור הגרף המשודרג
         self.chart_widget = EnhancedChartWidget()
         self.chart_widget.setMinimumHeight(280)
@@ -563,7 +532,7 @@ class TradeHistoryWindow(QMainWindow):
         chart_toggle_button.clicked.connect(self.toggle_chart_type)
         
         # משתנה פנימי לסוג התרשים הנוכחי
-        self.current_chart_type = "bar"
+        # self.current_chart_type = "bar"
 
         self.presenter=TradeHistoryPresenter(self)
         self.presenter.load_trade_history()
@@ -636,30 +605,10 @@ class TradeHistoryWindow(QMainWindow):
     
 
     def toggle_chart_type(self):
-
-        if self.current_chart_type == "line":
-            print("🔄 Switching to Bar Chart")
-            self.current_chart_type = "bar"
-            
-            # קבל את הנתונים מה-Presenter ללא עדכון התצוגה
-            bar_chart_data = self.presenter.get_bar_chart_data()
-            print(f"📊 Switching to Bar Chart with data: {bar_chart_data}")
-            
-            # עדכן את התצוגה ישירות
-            self.chart_widget.createBarChart(bar_chart_data)
-        else:
-            print("🔄 Switching to Line Chart")
-            self.current_chart_type = "line"
-            
-            # קבל את הנתונים מה-Presenter
-            line_chart_data = self.presenter.get_chart_data()
-            print(f"📊 Switching to Line Chart with data: {line_chart_data}")
-            
-            # עדכן את התצוגה ישירות
-            self.chart_widget.createLineChart(line_chart_data)
-
-            
-        # אנימציה קטנה למעבר
+        """מפעילה את החלפת סוג הגרף דרך ה-Presenter"""
+        self.presenter.toggle_chart_type()
+        
+        # אם רוצים לשמור על אנימציה בממשק, ניתן להשאיר אותה כאן (כחלק מה-View בלבד):
         animation = QPropertyAnimation(self.chart_widget, b"geometry")
         animation.setDuration(300)
         animation.setStartValue(self.chart_widget.geometry())
