@@ -1,5 +1,6 @@
 import sys
-
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from PySide6.QtWidgets import (
     QMainWindow, QLabel, QVBoxLayout, QWidget, QPushButton, QMenuBar, QStatusBar,
@@ -15,6 +16,7 @@ from sell_order_view import SellOrderWindow
 from ai_advisor_view import AIAdvisorWindow
 from trade_history_view import TradeHistoryWindow
 
+from presenters.main_presenter import MainPresenter
 
 
 class MainView(QMainWindow):
@@ -23,107 +25,70 @@ class MainView(QMainWindow):
         self.username = username
         self.setWindowTitle(f"SmartInvest Pro - {username}")
 
+        # חיבור ה-Presenter
+        self.presenter = MainPresenter(self)
+
         # 📌 קבלת גודל המסך והגדרת גודל החלון ביחס אליו
         screen = QApplication.primaryScreen()
         screen_size = screen.size()
-        print(f"🔹 Screen size detected: Width = {screen_size.width()}, Height = {screen_size.height()}")
-
-        # קביעת גודל חלון דינמי – 85% מרוחב המסך ו-85% מהגובה
         self.resize(int(screen_size.width() * 0.85), int(screen_size.height() * 0.85))
 
-        # 📌 עיצוב כללי עם הכחולים החדשים (gradient #2956B2-#4A7CE0, כפתורים #2956B2→#3A6ED5 וכו')
+        # 📌 עיצוב כללי
         self.setStyleSheet("""
-    QMainWindow, QWidget {
-        font-family: 'Segoe UI', 'Roboto', sans-serif;
-        background-color: #F0F5FF;
-    }
-    QLabel {
-        color: #2C3E50;
-    }
+            QMainWindow, QWidget {
+                font-family: 'Segoe UI', 'Roboto', sans-serif;
+                background-color: #F0F5FF;
+            }
+            QLabel {
+                color: #2C3E50;
+            }
+            QMenuBar {
+                background-color: #2956B2;
+                color: white;
+                font-size: 15px;
+                padding: 8px;
+            }
+            QMenuBar::item:selected {
+                background-color: #3A6ED5;
+            }
+            QStatusBar {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                           stop:0 #2956B2, stop:1 #4A7CE0);
+                color: white;
+                padding: 8px;
+                font-size: 14px;
+            }
+            QPushButton {
+                font-size: 15px;
+                font-weight: bold;
+                border-radius: 6px;
+                padding: 12px;
+                min-width: 160px;
+                background-color: #2956B2;
+                color: white;
+                border: none;
+            }
+            QPushButton:hover {
+                background-color: #3A6ED5;
+            }
+            QTableWidget {
+                font-family: 'Segoe UI', 'Arial', sans-serif;
+                font-size: 14px;
+                background-color: #F2F4F6;
+                border: 1px solid #CCD1D9;
+                border-radius: 5px;
+                gridline-color: #E0E6ED;
+            }
+            QHeaderView::section {
+                background-color: #2956B2;
+                color: white;
+                padding: 10px;
+                border: none;
+                font-weight: bold;
+            }
+        """)
 
-    /* שינוי צבע ה-Menubar לכחול */
-    QMenuBar {
-        background-color: #2956B2;
-        color: white;
-        font-size: 15px;
-        padding: 8px;
-    }
-    QMenuBar::item {
-        padding: 6px 12px;
-    }
-    QMenuBar::item:selected {
-        background-color: #3A6ED5;
-    }
-
-    /* סטטוס-בר עם גרדיאנט בכחול כהה */
-    QStatusBar {
-        background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                   stop:0 #2956B2, stop:1 #4A7CE0);
-        color: white;
-        padding: 8px;
-        font-size: 14px;
-    }
-                           
-    QScrollArea {
-        border: none;
-        background-color: transparent;
-    }
-    QScrollBar:vertical {
-        background-color: #F0F5FF;
-        width: 14px;
-        margin: 0px;
-    }
-    QScrollBar::handle:vertical {
-        background-color: #B8C9E6;
-        min-height: 30px;
-        border-radius: 7px;
-    }
-    QScrollBar::handle:vertical:hover {
-        background-color: #97B0D9;
-    }
-    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-        height: 0px;
-    }
-
-    /* כפתורים בכחול */
-    QPushButton {
-        font-size: 15px;
-        font-weight: bold;
-        border-radius: 6px;
-        padding: 12px;
-        min-width: 160px;
-        background-color: #2956B2;
-        color: white;
-        border: none;
-    }
-    QPushButton:hover {
-        background-color: #3A6ED5;
-    }
-
-    QTableWidget {
-    font-family: 'Segoe UI', 'Arial', sans-serif;
-    font-size: 14px;
-    font-weight: medium;
-    background-color: #F2F4F6;
-    alternate-background-color: #E9ECF0;
-    border: 1px solid #CCD1D9;
-    border-radius: 5px;
-    gridline-color: #E0E6ED;
-    selection-background-color: #D0E8F2;
-    selection-color: #2C3E50;
-}
-
-    /* כותרות עמודות בכחול */
-    QHeaderView::section {
-        background-color: #2956B2;
-        color: white;
-        padding: 10px;
-        border: none;
-        font-weight: bold;
-    }
-""")
-
-        # 🔹 **יצירת תפריט עליון (MenuBar)**
+        # 🔹 **יצירת תפריט עליון**
         self.menu_bar = QMenuBar(self)
         self.setMenuBar(self.menu_bar)
 
@@ -146,32 +111,13 @@ class MainView(QMainWindow):
         self.file_menu.addAction(self.settings_action)
         self.file_menu.addAction(self.exit_action)
 
-        # תפריט Tools
-        self.tools_menu = QMenu("Tools", self)
-        self.menu_bar.addMenu(self.tools_menu)
-        self.analyzer_action = QAction("Stock Analyzer", self)
-        self.calculator_action = QAction("Investment Calculator", self)
-        self.alerts_action = QAction("Price Alerts", self)
-        self.tools_menu.addAction(self.analyzer_action)
-        self.tools_menu.addAction(self.calculator_action)
-        self.tools_menu.addAction(self.alerts_action)
-
-        # תפריט Help
-        self.help_menu = QMenu("Help", self)
-        self.menu_bar.addMenu(self.help_menu)
-        self.guide_action = QAction("User Guide", self)
-        self.contact_action = QAction("Contact Us", self)
-        self.help_menu.addAction(self.guide_action)
-        self.help_menu.addAction(self.contact_action)
-
         # 🔹 **פריסה ראשית**
         self.main_layout = QVBoxLayout()
         self.main_layout.setContentsMargins(30, 30, 30, 30)
         self.main_layout.setSpacing(20)
 
-        # 🔹 **כותרת ראשית (header)**
+        # 🔹 **כותרת ראשית**
         self.header_frame = QFrame()
-        # במקום צבע אחיד (#1F3B73) – נעשה גרדיאנט (אם תרצה אפשר להשאיר אחיד):
         self.header_frame.setStyleSheet("""
             QFrame {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
@@ -182,22 +128,12 @@ class MainView(QMainWindow):
         """)
         header_layout = QVBoxLayout(self.header_frame)
 
-        self.label = QLabel(f"Welcome, {self.username}!")
-        self.label.setAlignment(Qt.AlignCenter)
+        self.label = QLabel("Welcome, Loading...")  # יעדכן שם משתמש דרך ה-Presenter
+        self.label.setAlignment(Qt.AlignCenter) 
         self.label.setStyleSheet("font-size: 28px; font-weight: bold; color: white;")
 
         header_layout.addWidget(self.label)
         self.main_layout.addWidget(self.header_frame)
-
-       
-        self.subtext_label = QLabel("Your smart investment companion.")
-        self.subtext_label.setAlignment(Qt.AlignCenter)
-        self.subtext_label.setAlignment(Qt.AlignLeft)  # יישור שמאלה
-        self.subtext_label.setStyleSheet("font-size: 16px; font-weight: normal; color: #E0E0E0;")
-        
-
-
-        header_layout.addWidget(self.subtext_label)
 
         # 🔹 **אזור כפתורים**
         self.create_buttons()
@@ -208,11 +144,9 @@ class MainView(QMainWindow):
         # 🔹 **התאמה לגודל דינמי וגלילה**
         container = QWidget()
         container.setLayout(self.main_layout)
-        # הסרת ההגבלה של הרוחב המקסימלי
-        # container.setMaximumWidth(1200)  <-- להסיר שורה זו
 
         outer_layout = QHBoxLayout()
-        outer_layout.addWidget(container)  # להסיר addStretch()
+        outer_layout.addWidget(container)
 
         central_widget = QWidget()
         central_widget.setLayout(outer_layout)
@@ -222,51 +156,32 @@ class MainView(QMainWindow):
         self.scroll_area.setWidget(central_widget)
         self.setCentralWidget(self.scroll_area)
 
-        # 🔹 **סטטוס בר** (עכשיו עם גרדיאנט)
+        # 🔹 **סטטוס בר**
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
-        self.status_bar.setStyleSheet("""
-            QStatusBar {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                           stop:0 #2956B2, stop:1 #4A7CE0);
-                color: white;
-                padding: 8px;
-                font-size: 14px;
-            }
-        """)
-        self.status_bar.showMessage(
-            f"Logged in as: {self.username} | Market Status: Open | Last Update: {QDate.currentDate().toString('dd/MM/yyyy')} 10:30"
-        )
+        self.status_bar.showMessage("Loading...")
+
+        # 🔹 **טעינת נתונים**
+        self.presenter.load_user_data()
+        self.presenter.load_portfolio_data()
 
     def create_buttons(self):
         """ יוצר אזור כפתורים נוח לשימוש """
         button_frame = QFrame()
-        button_frame.setStyleSheet("""
-            QFrame {
-                background-color: #F2F4F6;
-                border-radius: 10px;
-                padding: 20px;
-                border: 2px solid #2956B2; /* במקום #1F3B73 */
-            }
-        """)
         button_layout = QHBoxLayout(button_frame)
         button_layout.setSpacing(20)
 
         self.btn_buy_order = QPushButton("📈 Buy Order")
-        self.btn_buy_order.setToolTip("Place a buy order")
-        self.btn_buy_order.clicked.connect(self.open_buy_order)
+        self.btn_buy_order.clicked.connect(self.presenter.open_buy_order)
 
         self.btn_sell_order = QPushButton("📉 Sell Order")
-        self.btn_sell_order.setToolTip("Place a sell order")
-        self.btn_sell_order.clicked.connect(self.open_sell_order)
+        self.btn_sell_order.clicked.connect(self.presenter.open_sell_order)
 
         self.btn_ai_advisor = QPushButton("🤖 AI Advisor")
-        self.btn_ai_advisor.setToolTip("Get AI-powered investment advice")
-        self.btn_ai_advisor.clicked.connect(self.open_ai_advisor)
+        self.btn_ai_advisor.clicked.connect(self.presenter.open_ai_advisor)
 
         self.btn_trade_history = QPushButton("📊 Trade History")
-        self.btn_trade_history.setToolTip("View trade history")
-        self.btn_trade_history.clicked.connect(self.open_trade_history)
+        self.btn_trade_history.clicked.connect(self.presenter.open_trade_history)
 
         button_layout.addWidget(self.btn_buy_order)
         button_layout.addWidget(self.btn_sell_order)
@@ -284,82 +199,35 @@ class MainView(QMainWindow):
         portfolio_layout = QVBoxLayout(portfolio_tab)
         portfolio_layout.setContentsMargins(5, 5, 5, 5)
 
-        portfolio_header = QLabel("My Portfolio")
-        portfolio_header.setStyleSheet("font-size: 20px; font-weight: bold; color: #2C3E50;")
-        portfolio_header.setAlignment(Qt.AlignCenter)
-        portfolio_layout.addWidget(portfolio_header)
-
         self.stock_table = QTableWidget()
-        self.stock_table.setRowCount(5)  # הגדלת מספר השורות כברירת מחדל
         self.stock_table.setColumnCount(5)
-        self.stock_table.setMinimumHeight(400)  # הגדלת גובה הטבלה
-        self.stock_table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)  # התרחבות אוטומטית
-        self.stock_table.verticalHeader().setSectionResizeMode(QHeaderView.Stretch)  # מתיחת השורות כך שלא ייחתכו
-
         self.stock_table.setHorizontalHeaderLabels(["Stock", "Current Price", "Daily Change", "Quantity", "Portfolio Value"])
         self.stock_table.setAlternatingRowColors(True)
         self.stock_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.stock_table.verticalHeader().setVisible(False)
 
-        stocks_data = [
-            ("AAPL", "$182.30", "+1.2%", "35", "$6,380.50"),
-            ("GOOGL", "$2,835.55", "-0.3%", "5", "$14,177.75"),
-            ("MSFT", "$419.20", "+0.8%", "10", "$4,192.00"),
-            ("TSLA", "$167.50", "+2.1%", "12", "$2,010.00"),
-            ("AMZN", "$183.80", "+0.6%", "8", "$1,470.40")
-        ]
-
-        for row, (stock, price, change, quantity, value) in enumerate(stocks_data):
-            self.stock_table.setItem(row, 0, QTableWidgetItem(stock))
-
-            price_item = QTableWidgetItem(price)
-            price_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            self.stock_table.setItem(row, 1, price_item)
-
-            change_item = QTableWidgetItem(change)
-            change_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            if "+" in change:
-                change_item.setForeground(QColor("#00B894"))
-            else:
-                change_item.setForeground(QColor("#E74C3C"))
-            self.stock_table.setItem(row, 2, change_item)
-
-            quantity_item = QTableWidgetItem(quantity)
-            quantity_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            self.stock_table.setItem(row, 3, quantity_item)
-
-            value_item = QTableWidgetItem(value)
-            value_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            self.stock_table.setItem(row, 4, value_item)
-
         portfolio_layout.addWidget(self.stock_table)
         self.tabs.addTab(portfolio_tab, "Portfolio")
-        self.tabs.setMinimumSize(900, 500)  # כך שהטאב לא יגביל את גובה הטבלה
-
-
         self.main_layout.addWidget(self.tabs)
 
-    # 🔻 פונקציות שמופעלות כשלוחצים על הכפתורים 🔻
-    def open_buy_order(self):
-        self.buy_order_window = BuyOrderWindow(self.username)
-        self.buy_order_window.show()
+    def update_header(self, text):
+        """ מעדכן את הכותרת הראשית """
+        self.label.setText(text)
 
-    def open_sell_order(self):
-        self.sell_order_window = SellOrderWindow(self.username)
-        self.sell_order_window.show()
+    def update_status_bar(self, message):
+        """ מעדכן את הסטטוס בר עם מידע חדש """
+        self.status_bar.showMessage(message)
+        
+    def update_portfolio_table(self, portfolio_data):
+        """ מעדכן את הטבלה עם הנתונים החדשים """
+        self.stock_table.setRowCount(len(portfolio_data))
+        for row, stock_data in enumerate(portfolio_data):
+            for col, value in enumerate(stock_data):
+                item = QTableWidgetItem(str(value))
+                item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                self.stock_table.setItem(row, col, item)
 
-    def open_ai_advisor(self):
-        self.ai_advisor_window = AIAdvisorWindow(self.username)
-        self.ai_advisor_window.show()
-
-    def open_trade_history(self):
-        self.trade_history_window = TradeHistoryWindow(self.username)
-        self.trade_history_window.show()
-
-
-# ✅ **הרצת החלון לצורך בדיקה**
 if __name__ == "__main__":
-    import sys
     app = QApplication(sys.argv)
     window = MainView("John Doe")
     window.show()

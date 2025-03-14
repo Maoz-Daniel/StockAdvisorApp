@@ -1,16 +1,20 @@
 import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "views")))
+
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QTableWidget,
     QTableWidgetItem, QHeaderView, QPushButton, QDateEdit, QComboBox, QFrame, QApplication,
     QGraphicsDropShadowEffect, QSpacerItem, QSizePolicy, QCheckBox, QGridLayout,
-    QScrollArea  # הוספנו את QScrollArea
+    QScrollArea  
 )
 from PySide6.QtCore import Qt, QDate, QMargins, QPropertyAnimation, QEasingCurve
 from PySide6.QtGui import QColor, QPainter, QPen, QFont, QIcon
 from PySide6.QtCharts import QChart, QChartView, QLineSeries, QValueAxis, QBarSeries, QBarSet, QBarCategoryAxis
 
+from presenters.trade_history_presenter import TradeHistoryPresenter
 
-# 🔹 מחלקה משודרגת לגרף עם אפשרויות תצוגה נוספות
+
 class EnhancedChartWidget(QChartView):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -30,18 +34,30 @@ class EnhancedChartWidget(QChartView):
         shadow.setOffset(0, 2)
         self.setGraphicsEffect(shadow)
         
-        # יצירת גרף בסיסי
-        self.createLineChart()
+
         
-    def createLineChart(self):
+    def createLineChart(self,chart_data=[]):
         # יצירת סדרת נתונים משופרת
+        print(f"📊 Creating Line Chart with: {chart_data}")  # בדיקה שהגרף מקבל נתונים
         series = QLineSeries()
         series.setName("Trade Value")
         
-        # נתוני דמו משופרים
-        demo_data = [(1, 10), (2, 15), (3, 7), (4, 20), (5, 25), (6, 22), (7, 30)]
-        for x, y in demo_data:
+        if not chart_data:
+            print("⚠️ No data for chart!")
+            return  # אם אין נתונים, לא מציגים כלום
+       
+        
+        for x, y in chart_data:
+            print(f"Adding data point: ({x}, {y})")
             series.append(x, y)
+
+        if chart_data:
+            min_x = min(x for x, _ in chart_data)
+            max_x = max(x for x, _ in chart_data)
+            min_y = min(y for _, y in chart_data)
+            max_y = max(y for _, y in chart_data)
+        else:
+            min_x, max_x, min_y, max_y = 0, 10, 0, 1000
 
         # עיצוב הקו
         pen = QPen(QColor("#2563EB"))
@@ -69,7 +85,7 @@ class EnhancedChartWidget(QChartView):
         axisX.setTickCount(8)
 
         axisY = QValueAxis()
-        axisY.setRange(0, 35)
+        axisY.setRange(min_y-100, max_y+100) 
         axisY.setTitleText("Value ($)")
         axisY.setTitleFont(QFont("Segoe UI", 10))
         axisY.setLabelsColor(QColor("#475569"))
@@ -88,46 +104,56 @@ class EnhancedChartWidget(QChartView):
         
         self.setChart(chart)
         
-    def createBarChart(self):
-        # יצירת גרף עמודות כאלטרנטיבה
+    def createBarChart(self, bar_chart_data=[]):
+        """ יצירת גרף עמודות על בסיס הנתונים מה-Presenter """
+        print(f"📊 Creating Bar Chart with: {bar_chart_data}")
+
+        if not bar_chart_data:
+            print("⚠️ No data for bar chart!")
+            return
+
         barSet = QBarSet("Trades")
-        barSet.append([10, 15, 7, 20, 25, 22, 30])
+
+        # הוספת הנתונים לגרף
+        for stock, count in bar_chart_data:
+            barSet.append(count)
+
         barSet.setColor(QColor("#2563EB"))
-        
         series = QBarSeries()
         series.append(barSet)
-        
+
         chart = QChart()
         chart.addSeries(series)
-        chart.setTitle("Weekly Trade Volume")
+        chart.setTitle("Number of Trades per Stock")
         chart.setTitleFont(QFont("Segoe UI", 12, QFont.Bold))
         chart.setTitleBrush(QColor("#1F3B73"))
         chart.setAnimationOptions(QChart.SeriesAnimations)
         chart.setBackgroundVisible(False)
-        
-        categories = ["Week 1", "Week 2", "Week 3", "Week 4", "Week 5", "Week 6", "Week 7"]
+
+        categories = [stock for stock, _ in bar_chart_data]
         axisX = QBarCategoryAxis()
         axisX.append(categories)
         axisX.setLabelsFont(QFont("Segoe UI", 9))
         axisX.setLabelsColor(QColor("#475569"))
-        
+
         axisY = QValueAxis()
-        axisY.setRange(0, 35)
-        axisY.setTitleText("Quantity")
+        axisY.setRange(0, max(count for _, count in bar_chart_data) + 2)
+        axisY.setTitleText("Number of Trades")
         axisY.setTitleFont(QFont("Segoe UI", 10))
         axisY.setLabelsColor(QColor("#475569"))
         axisY.setGridLineVisible(True)
         axisY.setGridLineColor(QColor("#EDF2F7"))
-        
+
         chart.addAxis(axisX, Qt.AlignBottom)
         chart.addAxis(axisY, Qt.AlignLeft)
         series.attachAxis(axisX)
         series.attachAxis(axisY)
-        
+
         chart.legend().setVisible(True)
         chart.legend().setAlignment(Qt.AlignBottom)
-        
+
         self.setChart(chart)
+
 
 
 # 🔹 מחלקה לחלון הראשי עם שיפורים
@@ -453,12 +479,15 @@ class TradeHistoryWindow(QMainWindow):
         filter_button = QPushButton("Apply Filter")
         filter_button.setFixedWidth(120)
         filter_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)  
+        filter_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)  
+        filter_button.clicked.connect(self.apply_filter)
 
         
         reset_button = QPushButton("Reset")
-        reset_button.setFixedWidth(90)
-        filter_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)  
         reset_button.setStyleSheet("background-color: #64748B;")
+        reset_button.clicked.connect(self.reset_filters)
+        reset_button.setFixedWidth(90)
+        
 
         # הוספת הרכיבים לגריד
         filter_layout.addWidget(from_label, 0, 0)
@@ -484,6 +513,8 @@ class TradeHistoryWindow(QMainWindow):
         self.table.verticalHeader().setVisible(False)
         self.table.setMinimumHeight(300)
         self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+        main_layout.addWidget(self.table)
 
         # אפקט צל לטבלה
         table_shadow = QGraphicsDropShadowEffect(self.table)
@@ -532,16 +563,101 @@ class TradeHistoryWindow(QMainWindow):
         chart_toggle_button.clicked.connect(self.toggle_chart_type)
         
         # משתנה פנימי לסוג התרשים הנוכחי
-        self.current_chart_type = "line"
+        self.current_chart_type = "bar"
+
+        self.presenter=TradeHistoryPresenter(self)
+        self.presenter.load_trade_history()
+        self.presenter.load_trade_chart_data()
+        self.presenter.load_trade_bar_chart_data()
+
         
+    def update_chart(self,chart_data):
+        print("updae chart with data",chart_data)
+        self.chart_widget.createLineChart(chart_data)
+    
+    def update_bar_chart(self, bar_chart_data):
+        """ מעדכן את גרף העמודות עם הנתונים מה-Presenter """
+        print("📊 Updating Bar Chart with data:", bar_chart_data)
+        self.chart_widget.createBarChart(bar_chart_data)
+
+    
+    def update_trade_table(self, trade_history):
+        print(f"✅ update_trade_table() called with {len(trade_history)} trades")
+
+        # 🛠 ניקוי נתונים ישנים מהטבלה
+        self.table.clearContents()
+        self.table.setRowCount(len(trade_history))
+
+        if not trade_history:
+            print("⚠️ No trades to display!")
+            return
+
+        for row, trade in enumerate(trade_history):
+            print(f"🔹 Adding row {row}: {trade}")
+            self.table.setItem(row, 0, QTableWidgetItem(trade["date"].strftime("%Y-%m-%d")))
+            self.table.setItem(row, 1, QTableWidgetItem(trade["stock"]))
+            self.table.setItem(row, 2, QTableWidgetItem(trade["action"]))
+            self.table.setItem(row, 3, QTableWidgetItem(str(trade["quantity"])))
+            self.table.setItem(row, 4, QTableWidgetItem(f"${trade['price']:.2f}"))
+            self.table.setItem(row, 5, QTableWidgetItem(f"${trade['quantity'] * trade['price']:.2f}"))
+
+    
+    def apply_filter(self):
+        """ שולח בקשת סינון ל-Presenter """
+        start_date = self.from_date_edit.date().toPython()
+        end_date = self.to_date_edit.date().toPython()
+        selected_stock = self.stock_combo.currentText()
+        selected_action = []
+
+        if self.buy_checkbox.isChecked():
+            selected_action.append("Buy")
+        if self.sell_checkbox.isChecked():
+            selected_action.append("Sell")
+
+        stocks = [] if selected_stock == "All Stocks" else [selected_stock]
+
+        print(f"🔍 Sending filter request - Start: {start_date}, End: {end_date}, Stocks: {stocks}, Actions: {selected_action}")
+
+        self.presenter.filter_trade_history(start_date, end_date, stocks, selected_action)  # ✅ שולח את הבקשה ל-Presenter
+
+    def reset_filters(self):
+        """ מאפס את כל השדות בטופס ומציג מחדש את כל העסקאות """
+        print("🔄 Resetting filters to default values...")
+
+        # 🛠 איפוס כל שדות הסינון
+        self.from_date_edit.setDate(QDate.currentDate().addMonths(-1))
+        self.to_date_edit.setDate(QDate.currentDate())
+        self.stock_combo.setCurrentIndex(0)  # מחזיר ל- "All Stocks"
+        self.buy_checkbox.setChecked(True)
+        self.sell_checkbox.setChecked(True)
+
+        # 🔄 טוען מחדש את כל העסקאות
+        self.presenter.load_trade_history()
+    
+
     def toggle_chart_type(self):
-        # החלפה בין סוגי תרשימים
+
         if self.current_chart_type == "line":
-            self.chart_widget.createBarChart()
+            print("🔄 Switching to Bar Chart")
             self.current_chart_type = "bar"
+            
+            # קבל את הנתונים מה-Presenter ללא עדכון התצוגה
+            bar_chart_data = self.presenter.get_bar_chart_data()
+            print(f"📊 Switching to Bar Chart with data: {bar_chart_data}")
+            
+            # עדכן את התצוגה ישירות
+            self.chart_widget.createBarChart(bar_chart_data)
         else:
-            self.chart_widget.createLineChart()
+            print("🔄 Switching to Line Chart")
             self.current_chart_type = "line"
+            
+            # קבל את הנתונים מה-Presenter
+            line_chart_data = self.presenter.get_chart_data()
+            print(f"📊 Switching to Line Chart with data: {line_chart_data}")
+            
+            # עדכן את התצוגה ישירות
+            self.chart_widget.createLineChart(line_chart_data)
+
             
         # אנימציה קטנה למעבר
         animation = QPropertyAnimation(self.chart_widget, b"geometry")

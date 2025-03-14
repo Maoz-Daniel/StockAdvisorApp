@@ -1,8 +1,10 @@
+# login_view.py
 from PySide6.QtWidgets import (QDialog, QLabel, QVBoxLayout, QHBoxLayout, 
-                              QLineEdit, QFormLayout, QPushButton, QCheckBox,
-                              QFrame, QGraphicsDropShadowEffect, QWidget)
-from PySide6.QtCore import Qt, QSize
-from PySide6.QtGui import QIcon, QColor, QPixmap, QFont
+                               QLineEdit, QPushButton, QCheckBox, QFrame, QGraphicsDropShadowEffect)
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QColor
+from presenters import login_presenter
+from models import mock_stock_model
 
 class LoginDialog(QDialog):
     def __init__(self, parent=None):
@@ -150,12 +152,10 @@ class LoginDialog(QDialog):
         # Logo section
         logo_layout = QHBoxLayout()
         logo_icon = QLabel()
-        # In a real app, you'd use a proper icon file
-        logo_icon.setText("🔒")  
+        logo_icon.setText("🔒")
         logo_icon.setStyleSheet("font-size: 28px;")
         logo_text = QLabel("Smart Finance")
         logo_text.setObjectName("logo-text")
-        
         logo_layout.addWidget(logo_icon)
         logo_layout.addWidget(logo_text)
         logo_layout.setAlignment(Qt.AlignCenter)
@@ -197,17 +197,20 @@ class LoginDialog(QDialog):
         self.password_input.setEchoMode(QLineEdit.Password)
         form_layout.addWidget(self.password_input)
         
+        # Error label – מוצג רק במקרה של כישלון
+        self.error_label = QLabel("")
+        self.error_label.setStyleSheet("color: red; font-size: 14px;")
+        self.error_label.setAlignment(Qt.AlignCenter)
+        form_layout.addWidget(self.error_label)
+        
         # Remember me and forgot password
         remember_forgot_layout = QHBoxLayout()
-        
         self.remember_checkbox = QCheckBox("Remember me")
         remember_forgot_layout.addWidget(self.remember_checkbox)
-        
         forgot_button = QPushButton("Forgot Password?")
         forgot_button.setObjectName("forgot-button")
         remember_forgot_layout.addWidget(forgot_button)
         remember_forgot_layout.setAlignment(forgot_button, Qt.AlignRight)
-        
         form_layout.addLayout(remember_forgot_layout)
         form_layout.addSpacing(10)
         
@@ -233,14 +236,28 @@ class LoginDialog(QDialog):
         footer_text.setWordWrap(True)
         card_layout.addWidget(footer_text)
         
-        # Add the card to the main layout with margins
         main_layout.addWidget(card, 1, Qt.AlignCenter)
         self.setLayout(main_layout)
-    
+        
+        # יצירת ה-presenter והמודל
+        from presenters.login_presenter import LoginPresenter
+        from models.mock_stock_model import MockStockModel
+        self.model = MockStockModel()
+        self.presenter = LoginPresenter(self, self.model)
+        print("LoginDialog: Presenter initialized")
+
     def on_login_clicked(self):
-        self.username = self.username_input.text()
-        self.accept()  # Close dialog with successful login state
-    
+        username = self.username_input.text()
+        password = self.password_input.text()
+        print(f"LoginDialog: on_login_clicked() called with username={username}, password={password}")
+        result = self.presenter.perform_login(username, password)
+        if result:
+            print("LoginDialog: Login successful, closing dialog.")
+            self.username = username
+            self.accept()
+        else:
+            print("LoginDialog: Login failed, please try again.")
+            self.error_label.setText("Username or password incorrect.")
+
     def get_username(self):
-        """Returns the entered username"""
         return self.username
