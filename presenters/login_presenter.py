@@ -10,6 +10,7 @@ class LoginPresenter:
         print(f"LoginPresenter.perform_login() called with username={username}, password={password}")
         result = self.model.login(username, password)
         if result:
+            print(f"LoginPresenter: Setting username in model to: {username}")
             self.model.set_username(username)
             print("LoginPresenter: Login successful")
         else:

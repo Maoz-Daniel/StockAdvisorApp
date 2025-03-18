@@ -239,12 +239,6 @@ class LoginDialog(QDialog):
         main_layout.addWidget(card, 1, Qt.AlignCenter)
         self.setLayout(main_layout)
         
-        # יצירת ה-presenter והמודל
-        from presenters.login_presenter import LoginPresenter
-        from models.mock_stock_model import MockStockModel
-        self.model = MockStockModel()
-        self.presenter = LoginPresenter(self, self.model)
-        print("LoginDialog: Presenter initialized")
 
     def on_login_clicked(self):
         username = self.username_input.text()
@@ -261,3 +255,7 @@ class LoginDialog(QDialog):
 
     def get_username(self):
         return self.username
+    
+    def set_presenter(self, presenter):
+        self.presenter = presenter
+        # print("LoginDialog: Presenter set externally")

@@ -1,6 +1,6 @@
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "views")))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QTableWidget,
@@ -14,38 +14,38 @@ from PySide6.QtCharts import QChart, QChartView, QLineSeries, QValueAxis, QBarSe
 
 from presenters.trade_history_presenter import TradeHistoryPresenter
 
+# Import the luxury theme
+from assets.theme import LuxuryTheme
+
 
 class EnhancedChartWidget(QChartView):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setRenderHint(QPainter.Antialiasing)
         
-        # יצירת מסגרת מעוצבת
+        # Apply luxurious styling
         self.setStyleSheet("""
-            background-color: white;
-            border-radius: 10px;
-            border: 1px solid #E2E8F0;
+            background-color: #1E3A5F;
+            border-radius: 8px;
+            border: 1px solid #2C5A8C;
         """)
         
-        # יצירת אפקט צל
+        # Add blue glow shadow effect with gold tint
         shadow = QGraphicsDropShadowEffect(self)
         shadow.setBlurRadius(15)
-        shadow.setColor(QColor(0, 0, 0, 25))
+        shadow.setColor(QColor(255, 215, 0, 30))  # Gold glow
         shadow.setOffset(0, 2)
         self.setGraphicsEffect(shadow)
         
-
-        
-    def createLineChart(self,chart_data=[]):
-        # יצירת סדרת נתונים משופרת
-        print(f"📊 Creating Line Chart with: {chart_data}")  # בדיקה שהגרף מקבל נתונים
+    def createLineChart(self, chart_data=[]):
+        # Create data series
+        print(f"📊 Creating Line Chart with: {chart_data}")
         series = QLineSeries()
         series.setName("Trade Value")
         
         if not chart_data:
             print("⚠️ No data for chart!")
-            return  # אם אין נתונים, לא מציגים כלום
-       
+            return
         
         for x, y in chart_data:
             print(f"Adding data point: ({x}, {y})")
@@ -59,53 +59,54 @@ class EnhancedChartWidget(QChartView):
         else:
             min_x, max_x, min_y, max_y = 0, 10, 0, 1000
 
-        # עיצוב הקו
-        pen = QPen(QColor("#2563EB"))
+        # Style the line
+        pen = QPen(QColor(LuxuryTheme.GOLD))
         pen.setWidth(3)
         series.setPen(pen)
 
-        # יצירת הגרף
+        # Create the chart
         chart = QChart()
         chart.addSeries(series)
         chart.setTitle("Trade Performance History")
         chart.setTitleFont(QFont("Segoe UI", 12, QFont.Bold))
-        chart.setTitleBrush(QColor("#1F3B73"))
+        chart.setTitleBrush(QColor(LuxuryTheme.GOLD))
         chart.setBackgroundVisible(False)
         chart.setMargins(QMargins(10, 10, 10, 10))
         chart.setAnimationOptions(QChart.SeriesAnimations)
 
-        # יצירת צירים מעוצבים
+        # Style the axis
         axisX = QValueAxis()
         axisX.setRange(0, 8)
         axisX.setTitleText("Week")
         axisX.setTitleFont(QFont("Segoe UI", 10))
-        axisX.setLabelsColor(QColor("#475569"))
+        axisX.setLabelsColor(QColor(LuxuryTheme.TEXT_LIGHT))
         axisX.setGridLineVisible(True)
-        axisX.setGridLineColor(QColor("#EDF2F7"))
+        axisX.setGridLineColor(QColor(LuxuryTheme.HIGHLIGHT_BLUE))
         axisX.setTickCount(8)
 
         axisY = QValueAxis()
         axisY.setRange(min_y-100, max_y+100) 
         axisY.setTitleText("Value ($)")
         axisY.setTitleFont(QFont("Segoe UI", 10))
-        axisY.setLabelsColor(QColor("#475569"))
+        axisY.setLabelsColor(QColor(LuxuryTheme.TEXT_LIGHT))
         axisY.setGridLineVisible(True)
-        axisY.setGridLineColor(QColor("#EDF2F7"))
+        axisY.setGridLineColor(QColor(LuxuryTheme.HIGHLIGHT_BLUE))
 
         chart.addAxis(axisX, Qt.AlignBottom)
         chart.addAxis(axisY, Qt.AlignLeft)
         series.attachAxis(axisX)
         series.attachAxis(axisY)
 
-        # התאמת הסגנון של המקרא
+        # Style the legend
         chart.legend().setVisible(True)
         chart.legend().setAlignment(Qt.AlignBottom)
         chart.legend().setFont(QFont("Segoe UI", 9))
+        chart.legend().setLabelColor(QColor(LuxuryTheme.TEXT_LIGHT))
         
         self.setChart(chart)
         
     def createBarChart(self, bar_chart_data=[]):
-        """ יצירת גרף עמודות על בסיס הנתונים מה-Presenter """
+        """Create a bar chart based on data"""
         print(f"📊 Creating Bar Chart with: {bar_chart_data}")
 
         if not bar_chart_data:
@@ -114,11 +115,11 @@ class EnhancedChartWidget(QChartView):
 
         barSet = QBarSet("Trades")
 
-        # הוספת הנתונים לגרף
+        # Add data to chart
         for stock, count in bar_chart_data:
             barSet.append(count)
 
-        barSet.setColor(QColor("#2563EB"))
+        barSet.setColor(QColor(LuxuryTheme.GOLD))
         series = QBarSeries()
         series.append(barSet)
 
@@ -126,7 +127,7 @@ class EnhancedChartWidget(QChartView):
         chart.addSeries(series)
         chart.setTitle("Number of Trades per Stock")
         chart.setTitleFont(QFont("Segoe UI", 12, QFont.Bold))
-        chart.setTitleBrush(QColor("#1F3B73"))
+        chart.setTitleBrush(QColor(LuxuryTheme.GOLD))
         chart.setAnimationOptions(QChart.SeriesAnimations)
         chart.setBackgroundVisible(False)
 
@@ -134,15 +135,15 @@ class EnhancedChartWidget(QChartView):
         axisX = QBarCategoryAxis()
         axisX.append(categories)
         axisX.setLabelsFont(QFont("Segoe UI", 9))
-        axisX.setLabelsColor(QColor("#475569"))
+        axisX.setLabelsColor(QColor(LuxuryTheme.TEXT_LIGHT))
 
         axisY = QValueAxis()
         axisY.setRange(0, max(count for _, count in bar_chart_data) + 2)
         axisY.setTitleText("Number of Trades")
         axisY.setTitleFont(QFont("Segoe UI", 10))
-        axisY.setLabelsColor(QColor("#475569"))
+        axisY.setLabelsColor(QColor(LuxuryTheme.TEXT_LIGHT))
         axisY.setGridLineVisible(True)
-        axisY.setGridLineColor(QColor("#EDF2F7"))
+        axisY.setGridLineColor(QColor(LuxuryTheme.HIGHLIGHT_BLUE))
 
         chart.addAxis(axisX, Qt.AlignBottom)
         chart.addAxis(axisY, Qt.AlignLeft)
@@ -151,345 +152,261 @@ class EnhancedChartWidget(QChartView):
 
         chart.legend().setVisible(True)
         chart.legend().setAlignment(Qt.AlignBottom)
+        chart.legend().setLabelColor(QColor(LuxuryTheme.TEXT_LIGHT))
 
         self.setChart(chart)
 
 
-
-# 🔹 מחלקה לחלון הראשי עם שיפורים
 class TradeHistoryWindow(QMainWindow):
-    def __init__(self, username="Guest"):
-        super().__init__()
-        self.username = username
-        self.setWindowTitle(f"Trade History - SmartInvest Pro - {username}")
+    def __init__(self, model, parent=None):
+        super().__init__(parent)
+        self.model = model
+        self.username = model.get_username()
+        self.setWindowTitle(f"Trade History - SmartInvest Pro - {self.username}")
 
-        # 🔹 קבלת גודל המסך והתאמה
+        # Set window size
         screen_size = QApplication.primaryScreen().availableGeometry()
         self.setGeometry(screen_size.x(), screen_size.y(), screen_size.width() * 0.85, screen_size.height() * 0.85)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
-        # 🔹 סגנון משופר
-        self.setStyleSheet("""
-    QMainWindow, QWidget {
-        font-family: 'Segoe UI', 'Roboto', sans-serif;
-        background-color: #F5F8FB;
-    }
-    
-    QLabel {
-        color: #1E293B;
-        font-size: 16px;
-        font-weight: normal;
-        margin-bottom: 8px;
-    }
+        # Apply luxury theme
+        self.setStyleSheet(LuxuryTheme.STYLE_SHEET)
 
-    /* כותרת ראשית */
-    #title-label {
-        font-size: 30px;
-        font-weight: bold;
-        color: #1F3B73;
-        margin-bottom: 15px;
-    }
-    
-    #subtitle-label {
-        font-size: 16px;
-        color: #64748B;
-        margin-top: -10px;
-        margin-bottom: 20px;
-    }
-
-    /* מסגרת מעוגלת לכל הטבלה */
-    QTableWidget {
-        background-color: #FFFFFF;
-        border-radius: 8px;
-        border: 1px solid #E2E8F0;
-        gridline-color: #EDF2F7;
-        selection-background-color: rgba(37, 99, 235, 0.15);
-        selection-color: #1E40AF;
-        padding: 5px;
-    }
-    
-    QTableWidget::item {
-        padding: 12px;
-        border-bottom: 1px solid #EDF2F7;
-        color: #334155;
-    }
-    
-    QTableWidget::item:selected {
-        background-color: rgba(37, 99, 235, 0.15);
-        color: #1E40AF;
-        border-bottom: 1px solid #1E40AF;
-    }
-    
-    QHeaderView::section {
-        background-color: #1F3B73;
-        color: white;
-        padding: 14px;
-        font-size: 15px;
-        font-weight: bold;
-        border: none;
-    }
-    
-    QHeaderView::section:first {
-        border-top-left-radius: 8px;
-    }
-    
-    QHeaderView::section:last {
-        border-top-right-radius: 8px;
-    }
-    
-    QPushButton {
-        background-color: #2563EB;
-        color: white;
-        padding: 10px 18px;
-        border-radius: 6px;
-        font-weight: bold;
-        border: none;
-        min-height: 38px;
-    }
-    
-    QPushButton:hover {
-        background-color: #1D4ED8;
-    }
-    
-    QPushButton:pressed {
-        background-color: #1E40AF;
-    }
-    
-    QPushButton#chart-toggle-button {
-        background-color: #475569;
-        padding: 8px 15px;
-    }
-    
-    QPushButton#chart-toggle-button:hover {
-        background-color: #334155;
-    }
-    
-    QPushButton#export-button {
-        background-color: #10B981;
-    }
-    
-    QPushButton#export-button:hover {
-        background-color: #059669;
-    }
-    
-    /* עיצוב התאריכים והמניה */
-    QDateEdit, QComboBox {
-        background-color: #FFFFFF;
-        border: 1px solid #CBD5E1;
-        border-radius: 6px;
-        padding: 8px;
-        min-width: 145px;
-        min-height: 38px;
-        font-size: 14px;
-        color: #334155;
-    }
-    
-    QDateEdit:focus, QComboBox:focus {
-        border: 1px solid #2563EB;
-    }
-    
-    QCheckBox {
-        font-size: 14px;
-        color: #475569;
-        spacing: 8px;
-    }
-    
-    QCheckBox::indicator {
-        width: 18px;
-        height: 18px;
-        border-radius: 4px;
-        border: 1px solid #CBD5E1;
-    }
-    
-    QCheckBox::indicator:checked {
-        background-color: #2563EB;
-        border: 1px solid #2563EB;
-    }
-    
-    /* עיצוב לכותרות כמו "From:", "To:", "Stock:" */
-    #filter-label {
-        font-size: 14px;
-        font-weight: bold;
-        color: #475569;
-    }
-    
-    /* מסגרת לאזור הסינון */
-    #filter-frame, #action-frame {
-        background-color: #FFFFFF;
-        border-radius: 8px;
-        border: 1px solid #E2E8F0;
-        padding: 15px;
-    }
-    
-    /* עיצוב מיוחד לערכים חיוביים/שליליים */
-    .positive-value {
-        color: #10B981;
-        font-weight: 600;
-    }
-    
-    .negative-value {
-        color: #EF4444;
-        font-weight: 600;
-    }
-    
-    /* סרגל גלילה מותאם */
-    QScrollBar:vertical {
-        background: #F1F5F9;
-        width: 10px;
-        border-radius: 5px;
-    }
-    
-    QScrollBar::handle:vertical {
-        background: #CBD5E1;
-        border-radius: 5px;
-        min-height: 30px;
-    }
-    
-    QScrollBar::handle:vertical:hover {
-        background: #94A3B8;
-    }
-    
-    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-        height: 0px;
-    }
-    
-    /* עיצוב אזור הגלילה */
-    QScrollArea {
-        border: none;
-        background-color: transparent;
-    }
-""")
-
-        # הוספת אזור גלילה לחלון הראשי
+        # Create scroll area for main content
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setFrameShape(QFrame.NoFrame)
         self.setCentralWidget(scroll_area)
         
-        # 🔹 תוכן ראשי עטוף בתוך QWidget
+        # Main content widget in scroll area
         content_widget = QWidget()
         main_layout = QVBoxLayout(content_widget)
         main_layout.setContentsMargins(25, 25, 25, 25)
         main_layout.setSpacing(20)
         
-        # הגדרת אזור הגלילה להשתמש ב-content_widget
         scroll_area.setWidget(content_widget)
 
-        # 🔹 כותרת הדף
-        title_layout = QVBoxLayout()        
+        # Header section
+        self.create_header_section(main_layout)
+        
+        # Action bar section
+        self.create_action_section(main_layout)
+        
+        # Filter section
+        self.create_filter_section(main_layout)
+        
+        # Table section
+        self.create_table_section(main_layout)
+        
+        # Chart section
+        self.create_chart_section(main_layout)
 
+        # Initialize presenter
+        self.presenter = TradeHistoryPresenter(self, self.model)
+        
+        # Load data
+        self.presenter.load_trade_history()
+        self.presenter.load_trade_chart_data()
+        self.presenter.load_trade_bar_chart_data()
+
+        print(f"TradeHistoryWindow.__init__: Model username: {model.get_username()}")
+
+    def create_header_section(self, parent_layout):
+        """Create header section with title and subtitle"""
+        # Header container
+        header_frame = QFrame()
+        header_frame.setObjectName("header-frame")
+        
+        # Add blue glow shadow effect with gold tint
+        shadow = QGraphicsDropShadowEffect(header_frame)
+        shadow.setBlurRadius(20)
+        shadow.setColor(QColor(255, 215, 0, 30))  # Subtle gold glow
+        shadow.setOffset(0, 2)
+        header_frame.setGraphicsEffect(shadow)
+        
+        # Header layout
+        header_layout = QHBoxLayout(header_frame)
+        header_layout.setContentsMargins(25, 25, 25, 25)
+        
+        # Left side with title
+        left_layout = QVBoxLayout()
+        
         title_label = QLabel("Trade History Dashboard")
-        title_label.setObjectName("title-label")
+        title_label.setObjectName("welcome-label")
         
-        subtitle_label = QLabel(f"View and analyze your trading activity - {username}")
+        subtitle_label = QLabel(f"View and analyze your trading activity")
         subtitle_label.setObjectName("subtitle-label")
-        subtitle_label.setStyleSheet("font-size: 16px; color: #64748B; margin-top: 8px;")  # 📌 דוחף את הטקסט מעט למטה
-
         
-        title_layout.addWidget(title_label)
-        title_layout.addWidget(subtitle_label)
+        left_layout.addWidget(title_label)
+        left_layout.addWidget(subtitle_label)
+        left_layout.addStretch()
         
-        main_layout.addLayout(title_layout)
+        # Right side with analytics insight
+        right_frame = QFrame()
+        right_frame.setObjectName("gold-card")
+        
+        right_layout = QVBoxLayout(right_frame)
+        
+        account_label = QLabel(f"Active Account: {self.username}")
+        account_label.setObjectName("gold-text")
+        
+        insight_label = QLabel("\"Trading history reflects strategy, not just results.\"")
+        insight_label.setObjectName("quote-text")
+        insight_label.setWordWrap(True)
+        
+        right_layout.addWidget(account_label)
+        right_layout.addWidget(insight_label)
+        
+        # Add both sections to header
+        header_layout.addLayout(left_layout, 7)
+        header_layout.addWidget(right_frame, 3)
+        
+        parent_layout.addWidget(header_frame)
 
-        # 🔹 שורת פעולות עליונה
+    def create_action_section(self, parent_layout):
+        """Create action bar with summary and buttons"""
+        action_title = QLabel("Trading Summary")
+        action_title.setObjectName("section-title")
+        parent_layout.addWidget(action_title)
+        
         action_frame = QFrame()
-        action_frame.setObjectName("action-frame")
+        action_frame.setObjectName("card")
         action_layout = QHBoxLayout(action_frame)
-        action_layout.setContentsMargins(15, 15, 15, 15)
+        action_layout.setContentsMargins(20, 20, 20, 20)
         
+        # Summary statistics section
         stats_layout = QVBoxLayout()
         
-        trading_summary = QLabel("Trading summary:")
-        trading_summary.setStyleSheet("font-size: 16px; font-weight: bold; color: #1F3B73; margin-bottom: 2px;")
+        trading_summary = QLabel("Overall Performance:")
+        trading_summary.setObjectName("gold-accent-text")
         
         statistics_label = QLabel("Total Trades: 32 | Buy: 24 | Sell: 8 | Avg. Price: $485.50")
-        statistics_label.setStyleSheet("font-size: 14px; color: #475569; margin-top: 0px;")
+        statistics_label.setStyleSheet("color: #E8E8E8; font-size: 14px;")
         
         stats_layout.addWidget(trading_summary)
         stats_layout.addWidget(statistics_label)
         
+        # Action buttons
         chart_toggle_button = QPushButton("Toggle Chart Type")
-        chart_toggle_button.setObjectName("chart-toggle-button")
+        chart_toggle_button.setObjectName("gold-button")
         chart_toggle_button.setFixedWidth(150)
+        chart_toggle_button.clicked.connect(self.toggle_chart_type)
         
         export_button = QPushButton("Export Data")
-        export_button.setObjectName("export-button")
         export_button.setFixedWidth(130)
         
-        action_layout.addLayout(stats_layout)
-        action_layout.addStretch()
-        action_layout.addWidget(chart_toggle_button)
-        action_layout.addWidget(export_button)
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(chart_toggle_button)
+        button_layout.addWidget(export_button)
         
-        main_layout.addWidget(action_frame)
+        action_layout.addLayout(stats_layout, 7)
+        action_layout.addLayout(button_layout, 3)
+        
+        # Add shadow effect
+        shadow = QGraphicsDropShadowEffect(action_frame)
+        shadow.setBlurRadius(15)
+        shadow.setColor(QColor(255, 215, 0, 20))
+        shadow.setOffset(0, 3)
+        action_frame.setGraphicsEffect(shadow)
+        
+        parent_layout.addWidget(action_frame)
 
-        # 🔹 אזור סינון משודרג
+    def create_filter_section(self, parent_layout):
+        """Create filter controls section"""
+        filter_title = QLabel("Filter Transactions")
+        filter_title.setObjectName("section-title")
+        parent_layout.addWidget(filter_title)
+        
         filter_frame = QFrame()
-        filter_frame.setObjectName("filter-frame")
+        filter_frame.setObjectName("card")
         filter_layout = QGridLayout(filter_frame)
         
-        filter_layout.setContentsMargins(8, 8, 8, 8)  # 📌 מקטין את הרווחים הפנימיים
-        filter_layout.setHorizontalSpacing(8)  # 📌 מקטין את המרווחים בין האלמנטים
-        filter_layout.setVerticalSpacing(6)  # 📌 מקטין את המרווחים בין השורות
-        filter_frame.setFixedHeight(200)  # 📌 מגביל את גובה המסגרת
-        filter_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-
-
-        # מרכיבי סינון
+        filter_layout.setContentsMargins(20, 20, 20, 20)
+        filter_layout.setHorizontalSpacing(15)
+        filter_layout.setVerticalSpacing(15)
+        
+        # From date filter
         from_label = QLabel("From:")
-        from_label.setObjectName("filter-label")
+        from_label.setObjectName("gold-accent-text")
         
         self.from_date_edit = QDateEdit()
         self.from_date_edit.setDate(QDate.currentDate().addMonths(-1))
         self.from_date_edit.setCalendarPopup(True)
-        self.from_date_edit.setFixedSize(140, 35)
+        self.from_date_edit.setStyleSheet("""
+            background-color: #24466D;
+            border: 1px solid #2C5A8C;
+            border-radius: 6px;
+            padding: 8px;
+            color: #E8E8E8;
+        """)
 
+        # To date filter
         to_label = QLabel("To:")
-        to_label.setObjectName("filter-label")
+        to_label.setObjectName("gold-accent-text")
         
         self.to_date_edit = QDateEdit()
         self.to_date_edit.setDate(QDate.currentDate())
         self.to_date_edit.setCalendarPopup(True)
-        self.to_date_edit.setFixedSize(140, 35)
+        self.to_date_edit.setStyleSheet("""
+            background-color: #24466D;
+            border: 1px solid #2C5A8C;
+            border-radius: 6px;
+            padding: 8px;
+            color: #E8E8E8;
+        """)
 
+        # Stock filter
         stock_label = QLabel("Stock:")
-        stock_label.setObjectName("filter-label")
+        stock_label.setObjectName("gold-accent-text")
         
         self.stock_combo = QComboBox()
         self.stock_combo.addItems(["All Stocks", "AAPL", "GOOGL", "MSFT", "TSLA", "AMZN", "META", "NFLX"])
-        self.stock_combo.setFixedSize(160, 35)  # 📌 מקטין את שדה המניה
-        self.stock_combo.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)  
+        self.stock_combo.setStyleSheet("""
+            background-color: #24466D;
+            border: 1px solid #2C5A8C;
+            border-radius: 6px;
+            padding: 8px;
+            color: #E8E8E8;
+        """)
 
-
+        # Transaction type filter
         transaction_label = QLabel("Transaction:")
-        transaction_label.setObjectName("filter-label")
+        transaction_label.setObjectName("gold-accent-text")
         
         transaction_layout = QHBoxLayout()
+        
         self.buy_checkbox = QCheckBox("Buy")
         self.buy_checkbox.setChecked(True)
+        self.buy_checkbox.setStyleSheet("""
+            color: #E8E8E8;
+            font-size: 14px;
+            spacing: 8px;
+        """)
+        
         self.sell_checkbox = QCheckBox("Sell")
         self.sell_checkbox.setChecked(True)
-        self.buy_checkbox.setStyleSheet("font-size: 16px; padding: 6px;")  # 📌 מגדיל טקסט
-        self.sell_checkbox.setStyleSheet("font-size: 16px; padding: 6px;")
+        self.sell_checkbox.setStyleSheet("""
+            color: #E8E8E8;
+            font-size: 14px;
+            spacing: 8px;
+        """)
         
         transaction_layout.addWidget(self.buy_checkbox)
         transaction_layout.addWidget(self.sell_checkbox)
         transaction_layout.addStretch()
 
+        # Filter action buttons
         filter_button = QPushButton("Apply Filter")
-        filter_button.setFixedWidth(120)
-        filter_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)  
-        filter_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)  
         filter_button.clicked.connect(self.apply_filter)
-
         
         reset_button = QPushButton("Reset")
-        reset_button.setStyleSheet("background-color: #64748B;")
+        reset_button.setStyleSheet("""
+            background-color: #475569;
+            color: white;
+        """)
         reset_button.clicked.connect(self.reset_filters)
-        reset_button.setFixedWidth(90)
         
-
-        # הוספת הרכיבים לגריד
+        # Add all components to grid
         filter_layout.addWidget(from_label, 0, 0)
         filter_layout.addWidget(self.from_date_edit, 0, 1)
         filter_layout.addWidget(to_label, 0, 2)
@@ -501,59 +418,95 @@ class TradeHistoryWindow(QMainWindow):
         filter_layout.addLayout(transaction_layout, 1, 1, 1, 2)
         filter_layout.addWidget(filter_button, 1, 4)
         filter_layout.addWidget(reset_button, 1, 5)
+        
+        # Add shadow effect
+        shadow = QGraphicsDropShadowEffect(filter_frame)
+        shadow.setBlurRadius(15)
+        shadow.setColor(QColor(255, 215, 0, 20))
+        shadow.setOffset(0, 3)
+        filter_frame.setGraphicsEffect(shadow)
+        
+        parent_layout.addWidget(filter_frame)
 
-        main_layout.addWidget(filter_frame)
-
-        # 🔹 אזור הטבלה המשודרג
-        self.table = QTableWidget(8, 6)  # הוספת עמודה נוספת ושורות נוספות
+    def create_table_section(self, parent_layout):
+        """Create trade history table section"""
+        table_title = QLabel("Transaction History")
+        table_title.setObjectName("section-title")
+        parent_layout.addWidget(table_title)
+        
+        table_frame = QFrame()
+        table_frame.setObjectName("card")
+        table_layout = QVBoxLayout(table_frame)
+        table_layout.setContentsMargins(20, 20, 20, 20)
+        
+        # Create table
+        self.table = QTableWidget()
+        self.table.setColumnCount(6)
         self.table.setHorizontalHeaderLabels(["Date", "Stock", "Action", "Quantity", "Unit Price", "Total"])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table.setAlternatingRowColors(True)
         self.table.setShowGrid(True)
         self.table.verticalHeader().setVisible(False)
         self.table.setMinimumHeight(300)
-        self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-
-        main_layout.addWidget(self.table)
-
-        # אפקט צל לטבלה
+        
+        # Add subtle glow effect to table with gold tint
         table_shadow = QGraphicsDropShadowEffect(self.table)
-        table_shadow.setBlurRadius(15)
-        table_shadow.setColor(QColor(0, 0, 0, 25))
-        table_shadow.setOffset(0, 2)
+        table_shadow.setBlurRadius(10)
+        table_shadow.setColor(QColor(255, 215, 0, 20))
+        table_shadow.setOffset(0, 1)
         self.table.setGraphicsEffect(table_shadow)
+        
+        table_layout.addWidget(self.table)
+        
+        # Add shadow effect to frame
+        frame_shadow = QGraphicsDropShadowEffect(table_frame)
+        frame_shadow.setBlurRadius(15)
+        frame_shadow.setColor(QColor(255, 215, 0, 20))
+        frame_shadow.setOffset(0, 3)
+        table_frame.setGraphicsEffect(frame_shadow)
+        
+        parent_layout.addWidget(table_frame)
 
-        # 🔹 אזור הגרף המשודרג
+    def create_chart_section(self, parent_layout):
+        """Create chart visualization section"""
+        chart_title = QLabel("Performance Visualization")
+        chart_title.setObjectName("section-title")
+        parent_layout.addWidget(chart_title)
+        
+        chart_frame = QFrame()
+        chart_frame.setObjectName("card")
+        chart_layout = QVBoxLayout(chart_frame)
+        chart_layout.setContentsMargins(20, 20, 20, 20)
+        
+        # Create chart widget
         self.chart_widget = EnhancedChartWidget()
-        self.chart_widget.setMinimumHeight(280)
-        main_layout.addWidget(self.chart_widget, stretch=1)
+        self.chart_widget.setMinimumHeight(300)
+        chart_layout.addWidget(self.chart_widget)
         
-        # חיבור כפתור החלפת סוג תרשים
-        chart_toggle_button.clicked.connect(self.toggle_chart_type)
+        # Add shadow effect
+        shadow = QGraphicsDropShadowEffect(chart_frame)
+        shadow.setBlurRadius(15)
+        shadow.setColor(QColor(255, 215, 0, 20))
+        shadow.setOffset(0, 3)
+        chart_frame.setGraphicsEffect(shadow)
         
-        # משתנה פנימי לסוג התרשים הנוכחי
-        # self.current_chart_type = "bar"
+        parent_layout.addWidget(chart_frame)
 
-        self.presenter=TradeHistoryPresenter(self)
-        self.presenter.load_trade_history()
-        self.presenter.load_trade_chart_data()
-        self.presenter.load_trade_bar_chart_data()
-
-        
-    def update_chart(self,chart_data):
-        print("updae chart with data",chart_data)
+    def update_chart(self, chart_data):
+        """Update line chart with data"""
+        print("Updating chart with data", chart_data)
         self.chart_widget.createLineChart(chart_data)
     
     def update_bar_chart(self, bar_chart_data):
-        """ מעדכן את גרף העמודות עם הנתונים מה-Presenter """
+        """Update bar chart with data"""
         print("📊 Updating Bar Chart with data:", bar_chart_data)
         self.chart_widget.createBarChart(bar_chart_data)
-
     
     def update_trade_table(self, trade_history):
+        """Update trade history table with data"""
         print(f"✅ update_trade_table() called with {len(trade_history)} trades")
 
-        # 🛠 ניקוי נתונים ישנים מהטבלה
+        # Clear old data
         self.table.clearContents()
         self.table.setRowCount(len(trade_history))
 
@@ -563,16 +516,41 @@ class TradeHistoryWindow(QMainWindow):
 
         for row, trade in enumerate(trade_history):
             print(f"🔹 Adding row {row}: {trade}")
-            self.table.setItem(row, 0, QTableWidgetItem(trade["date"].strftime("%Y-%m-%d")))
-            self.table.setItem(row, 1, QTableWidgetItem(trade["stock"]))
-            self.table.setItem(row, 2, QTableWidgetItem(trade["action"]))
-            self.table.setItem(row, 3, QTableWidgetItem(str(trade["quantity"])))
-            self.table.setItem(row, 4, QTableWidgetItem(f"${trade['price']:.2f}"))
-            self.table.setItem(row, 5, QTableWidgetItem(f"${trade['quantity'] * trade['price']:.2f}"))
-
+            
+            date_item = QTableWidgetItem(trade["date"].strftime("%Y-%m-%d"))
+            stock_item = QTableWidgetItem(trade["stock"])
+            action_item = QTableWidgetItem(trade["action"])
+            quantity_item = QTableWidgetItem(str(trade["quantity"]))
+            price_item = QTableWidgetItem(f"${trade['price']:.2f}")
+            total_item = QTableWidgetItem(f"${trade['quantity'] * trade['price']:.2f}")
+            
+            # Set alignment
+            date_item.setTextAlignment(Qt.AlignCenter)
+            stock_item.setTextAlignment(Qt.AlignCenter)
+            action_item.setTextAlignment(Qt.AlignCenter)
+            quantity_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            price_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            total_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            
+            # Set colors for action column
+            if trade["action"] == "Buy":
+                action_item.setForeground(QColor(LuxuryTheme.POSITIVE_GREEN))
+            else:
+                action_item.setForeground(QColor(LuxuryTheme.NEGATIVE_RED))
+                
+            # Highlight total with gold
+            total_item.setForeground(QColor(LuxuryTheme.GOLD))
+            
+            # Add items to table
+            self.table.setItem(row, 0, date_item)
+            self.table.setItem(row, 1, stock_item)
+            self.table.setItem(row, 2, action_item)
+            self.table.setItem(row, 3, quantity_item)
+            self.table.setItem(row, 4, price_item)
+            self.table.setItem(row, 5, total_item)
     
     def apply_filter(self):
-        """ שולח בקשת סינון ל-Presenter """
+        """Apply filters to trade history"""
         start_date = self.from_date_edit.date().toPython()
         end_date = self.to_date_edit.date().toPython()
         selected_stock = self.stock_combo.currentText()
@@ -587,28 +565,27 @@ class TradeHistoryWindow(QMainWindow):
 
         print(f"🔍 Sending filter request - Start: {start_date}, End: {end_date}, Stocks: {stocks}, Actions: {selected_action}")
 
-        self.presenter.filter_trade_history(start_date, end_date, stocks, selected_action)  # ✅ שולח את הבקשה ל-Presenter
+        self.presenter.filter_trade_history(start_date, end_date, stocks, selected_action)
 
     def reset_filters(self):
-        """ מאפס את כל השדות בטופס ומציג מחדש את כל העסקאות """
+        """Reset all filters to default values"""
         print("🔄 Resetting filters to default values...")
 
-        # 🛠 איפוס כל שדות הסינון
+        # Reset filter fields
         self.from_date_edit.setDate(QDate.currentDate().addMonths(-1))
         self.to_date_edit.setDate(QDate.currentDate())
-        self.stock_combo.setCurrentIndex(0)  # מחזיר ל- "All Stocks"
+        self.stock_combo.setCurrentIndex(0)  # Back to "All Stocks"
         self.buy_checkbox.setChecked(True)
         self.sell_checkbox.setChecked(True)
 
-        # 🔄 טוען מחדש את כל העסקאות
+        # Reload all trades
         self.presenter.load_trade_history()
-    
 
     def toggle_chart_type(self):
-        """מפעילה את החלפת סוג הגרף דרך ה-Presenter"""
+        """Toggle between chart types"""
         self.presenter.toggle_chart_type()
         
-        # אם רוצים לשמור על אנימציה בממשק, ניתן להשאיר אותה כאן (כחלק מה-View בלבד):
+        # Add animation effect
         animation = QPropertyAnimation(self.chart_widget, b"geometry")
         animation.setDuration(300)
         animation.setStartValue(self.chart_widget.geometry())
@@ -617,13 +594,18 @@ class TradeHistoryWindow(QMainWindow):
         animation.start()
 
 
-# 🔹 הפעלת האפליקציה
+# For standalone testing
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = TradeHistoryWindow("John Doe")
+    
+    # Create mock model
+    from models.mock_stock_model import MockStockModel
+    model = MockStockModel()
+    
+    window = TradeHistoryWindow(model)
     window.show()
     
-    # תמיכה ב-High DPI
+    # High DPI support
     app.setAttribute(Qt.AA_UseHighDpiPixmaps)
     app.setAttribute(Qt.AA_EnableHighDpiScaling)
     

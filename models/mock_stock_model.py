@@ -54,11 +54,11 @@ class MockStockModel:
         return list(trade_counts.items())
     
     def set_username(self, username):
-        print(f"MockStockModel.set_username() called with username={username}")
+        print(f"MockStockModel.set_username: Setting username to {username}")
         self.username = username
 
     def get_username(self):
-        print("MockStockModel.get_username() called")
+        print(f"MockStockModel.get_username: Returning username: {self.username}")
         return self.username
 
     def get_portfolio_data(self):
@@ -135,3 +135,39 @@ class MockStockModel:
             return True
         print("MockStockModel.login(): Login failed")
         return False
+
+def get_stock_info(self, stock_symbol):
+    """Get detailed information about a specific stock"""
+    if stock_symbol in self.portfolio:
+        return {
+            "symbol": stock_symbol,
+            "quantity": self.portfolio[stock_symbol]["quantity"],
+            "price": self.portfolio[stock_symbol]["price"],
+            "value": self.portfolio[stock_symbol]["quantity"] * self.portfolio[stock_symbol]["price"]
+        }
+    return None
+
+def get_portfolio_summary(self):
+    """Get a summary of the user's portfolio"""
+    total_value = sum(stock["price"] * stock["quantity"] for stock in self.portfolio.values())
+    stock_count = len(self.portfolio)
+    return {
+        "total_value": total_value,
+        "stock_count": stock_count,
+        "username": self.username
+    }
+    
+def calculate_transaction_cost(self, price, quantity, transaction_type="buy"):
+    """Calculate total cost including fees for a transaction"""
+    base_cost = price * quantity
+    # Example fee structure
+    if transaction_type == "buy":
+        commission = max(4.95, base_cost * 0.005)  # $4.95 or 0.5%, whichever is higher
+    else:  # sell
+        commission = max(4.95, base_cost * 0.005)
+    
+    return {
+        "base_cost": base_cost,
+        "commission": commission,
+        "total": base_cost + commission if transaction_type == "buy" else base_cost - commission
+    }

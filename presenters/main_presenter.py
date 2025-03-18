@@ -6,17 +6,16 @@ from views.trade_history_view import TradeHistoryWindow
 from PySide6.QtCore import QDate
 
 class MainPresenter:
-    def __init__(self, view):
+    def __init__(self, view,model):
         """ קונסטרקטור שמקבל את ה-View ומחבר אותו ל-Model """
         self.view = view
-        self.model = MockStockModel()  # שימוש בנתוני דמה
+        self.model = model
+        print(f"MainPresenter.__init__: Received model with username: {model.get_username()}")
 
     def load_user_data(self):
-        """ טוען את שם המשתמש ומעדכן את הכותרת הראשית """
-        self.model.username = self.view.username
+        """ Load username and update main header """
         username = self.model.get_username()
-
-        self.view.update_header(f"Welcome, {username}!")  # קריאה ל-View לעדכן כותרת
+        self.view.update_header(f"Welcome, {username}!")
         self.view.update_status_bar(f"Logged in as: {username} | Market Status: Open | Last Update: {QDate.currentDate().toString('dd/MM/yyyy')} 10:30")
 
 
@@ -45,23 +44,23 @@ class MainPresenter:
         """ מחזיר ייעוץ AI מהמודל """
         return self.model.get_ai_advice(query)
 
-    # ✅ פונקציות לפתיחת חלונות מה-View
     def open_buy_order(self):
-        """ פותח חלון לרכישת מניות """
-        self.view.buy_order_window = BuyOrderWindow(self.view.username)
+        """ Open window for buying stocks """
+        self.view.buy_order_window = BuyOrderWindow(self.model)
         self.view.buy_order_window.show()
 
     def open_sell_order(self):
-        """ פותח חלון למכירת מניות """
-        self.view.sell_order_window = SellOrderWindow(self.view.username)
+        """ Open window for selling stocks """
+        self.view.sell_order_window = SellOrderWindow(self.model)
         self.view.sell_order_window.show()
 
     def open_ai_advisor(self):
-        """ פותח חלון ליועץ AI """
-        self.view.ai_advisor_window = AIAdvisorWindow(self.view.username)
+        """ Open AI advisor window """
+        self.view.ai_advisor_window = AIAdvisorWindow(self.model)
         self.view.ai_advisor_window.show()
 
     def open_trade_history(self):
-        """ פותח חלון להיסטוריית מסחר """
-        self.view.trade_history_window = TradeHistoryWindow(self.view.username)
+        """ Open trade history window """
+        self.view.trade_history_window = TradeHistoryWindow(self.model)
         self.view.trade_history_window.show()
+        print(f"open_trade_history: Model username before opening window: {self.model.get_username()}")

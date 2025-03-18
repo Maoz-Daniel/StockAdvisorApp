@@ -4,10 +4,10 @@ from PySide6.QtWidgets import QFrame
 
 
 class AIAdvisorPresenter:
-    def __init__(self, view):
+    def __init__(self, view, model):
         """מחבר את ה-View למודל ושולט בלוגיקה של ניתוח ה-AI"""
         self.view = view
-        self.model = MockStockModel()  # ניתן להחליף במודל ייעודי אם קיים
+        self.model = model  # ניתן להחליף במודל ייעודי אם קיים
 
     def run_ai_analysis(self):
         """מפעיל ניתוח AI – מעדכן את כפתור הניתוח, מדמה השהייה, ומחזיר תובנה חדשה"""

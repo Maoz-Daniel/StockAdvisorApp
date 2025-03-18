@@ -1,10 +1,10 @@
 from models.mock_stock_model import MockStockModel
 
 class TradeHistoryPresenter:
-    def __init__(self, view):
+    def __init__(self, view, model):
         """מחבר את ה-View למודל ושולט בלוגיקה של ההיסטוריה"""
         self.view = view
-        self.model = MockStockModel()  # מקור הנתונים
+        self.model = model  # מקור הנתונים
         self.current_chart_type = "bar"  # ניהול מצב הגרף בתוך ה-Presenter
 
     def load_trade_history(self):
