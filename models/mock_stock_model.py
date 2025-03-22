@@ -1,8 +1,12 @@
 import random
+import requests
 from datetime import datetime, timedelta
 
 class MockStockModel:
     def __init__(self):
+
+        self.api_base_url = "http://localhost:5124/api"
+
         # שם המשתמש המחובר (דמה)
         self.username = "deafult_user"
         # רשימת משתמשים (דוגמה)
@@ -127,14 +131,66 @@ class MockStockModel:
         return random.choice(advices)
 
     def login(self, username, password):
+        """
+        Authenticate user against the backend API
+        """
         print(f"MockStockModel.login() called with username={username}, password={password}")
-        # בדיקה: אם username נמצא במילון והסיסמה תואמת
-        if username in self.users and self.users[username] == password:
-            self.username = username
-            print("MockStockModel.login(): Login successful")
-            return True
-        print("MockStockModel.login(): Login failed")
-        return False
+        
+        try:
+            response = requests.post(
+                f"{self.api_base_url}/Auth/login",
+                json={"username": username, "password": password}
+            )
+            
+            if response.status_code == 200:
+                # Login successful
+                user_data = response.json()
+                self.username = username
+                
+                # Store user ID if available
+                if 'userId' in user_data:
+                    self.user_id = user_data['userId']
+                    
+                print(f"MockStockModel.login(): Login successful. User ID: {self.user_id}")
+                return True
+            else:
+                print(f"MockStockModel.login(): Login failed. Status: {response.status_code}")
+                return False
+                
+        except Exception as e:
+            print(f"MockStockModel.login(): API Error: {str(e)}")
+            
+            # Fallback to mock data if API is unavailable
+            if username in self.users and self.users[username] == password:
+                self.username = username
+                print("MockStockModel.login(): Fallback to mock data - Login successful")
+                return True
+                
+            print("MockStockModel.login(): Login failed")
+            return False
+        
+    def register(self, username, password, email):
+        """
+        Register a new user with the backend
+        """
+        try:
+            response = requests.post(
+                f"{self.api_base_url}/Auth/register",
+                json={"username": username, "password": password, "email": email}
+            )
+            
+            return response.status_code == 200
+                
+        except Exception as e:
+            print(f"MockStockModel.register(): API Error: {str(e)}")
+            return False
+    
+def set_user_id(self, user_id):
+        """
+        Set the user ID received from the backend
+        """
+        self.user_id = user_id
+        print(f"MockStockModel: User ID set to {user_id}")
 
 def get_stock_info(self, stock_symbol):
     """Get detailed information about a specific stock"""

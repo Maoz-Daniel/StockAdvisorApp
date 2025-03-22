@@ -1,22 +1,19 @@
-# login_view.py
+# register_view.py
 from PySide6.QtWidgets import (QDialog, QLabel, QVBoxLayout, QHBoxLayout, 
-                               QLineEdit, QPushButton, QCheckBox, QFrame, QGraphicsDropShadowEffect)
+                               QLineEdit, QPushButton, QFrame, QGraphicsDropShadowEffect)
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
-from presenters import login_presenter
-from models import mock_stock_model
 
-class LoginDialog(QDialog):
+class RegisterDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Smart Finance - Secure Login")
-        self.setFixedSize(450, 550)
-        self.username = ""
+        self.setWindowTitle("Smart Finance - Create Account")
+        self.setFixedSize(450, 600)
         
         # Set window flags
         self.setWindowFlags(Qt.Dialog | Qt.WindowCloseButtonHint)
         
-        # Apply stylesheets
+        # Apply stylesheets (same as login dialog for consistency)
         self.setStyleSheet("""
             QDialog {
                 background-color: #FFFFFF;
@@ -65,7 +62,7 @@ class LoginDialog(QDialog):
             QLineEdit::placeholder {
                 color: #94A3B8;
             }
-            QPushButton#login-button {
+            QPushButton#register-button {
                 background-color: #1E40AF;
                 color: white;
                 font-size: 16px;
@@ -75,48 +72,21 @@ class LoginDialog(QDialog):
                 border: none;
                 height: 45px;
             }
-            QPushButton#login-button:hover {
+            QPushButton#register-button:hover {
                 background-color: #1E3A8A;
             }
-            QPushButton#register-button {
+            QPushButton#cancel-button {
                 background-color: transparent;
-                color: #1E40AF;
+                color: #64748B;
                 font-size: 16px;
                 font-weight: bold;
                 padding: 12px 0px;
                 border-radius: 6px;
-                border: 1px solid #1E40AF;
+                border: 1px solid #CBD5E1;
                 height: 45px;
             }
-            QPushButton#register-button:hover {
-                background-color: #EFF6FF;
-            }
-            QPushButton#forgot-button {
-                background-color: transparent;
-                color: #1E40AF;
-                font-size: 14px;
-                border: none;
-                padding: 0px;
-                text-align: right;
-            }
-            QPushButton#forgot-button:hover {
-                color: #2563EB;
-                text-decoration: underline;
-            }
-            QCheckBox {
-                color: #64748B;
-                font-size: 14px;
-                spacing: 8px;
-            }
-            QCheckBox::indicator {
-                width: 18px;
-                height: 18px;
-                border: 1px solid #CBD5E1;
-                border-radius: 4px;
-            }
-            QCheckBox::indicator:checked {
-                background-color: #1E40AF;
-                border: 1px solid #1E40AF;
+            QPushButton#cancel-button:hover {
+                background-color: #F1F5F9;
             }
             QFrame#card {
                 background-color: white;
@@ -126,6 +96,11 @@ class LoginDialog(QDialog):
             QLabel#footer-text {
                 color: #64748B;
                 font-size: 13px;
+            }
+            QLabel#error-text {
+                color: #EF4444;
+                font-size: 14px;
+                margin-top: 5px;
             }
         """)
         
@@ -152,7 +127,7 @@ class LoginDialog(QDialog):
         # Logo section
         logo_layout = QHBoxLayout()
         logo_icon = QLabel()
-        logo_icon.setText("🔒")
+        logo_icon.setText("🔐")
         logo_icon.setStyleSheet("font-size: 28px;")
         logo_text = QLabel("Smart Finance")
         logo_text.setObjectName("logo-text")
@@ -162,12 +137,12 @@ class LoginDialog(QDialog):
         card_layout.addLayout(logo_layout)
         
         # Title and subtitle
-        title = QLabel("Welcome Back")
+        title = QLabel("Create New Account")
         title.setObjectName("title")
         title.setAlignment(Qt.AlignCenter)
         card_layout.addWidget(title)
         
-        subtitle = QLabel("Sign in to access your portfolio and investments")
+        subtitle = QLabel("Join Smart Finance and start managing your investments")
         subtitle.setObjectName("subtitle")
         subtitle.setAlignment(Qt.AlignCenter)
         card_layout.addWidget(subtitle)
@@ -184,8 +159,17 @@ class LoginDialog(QDialog):
         form_layout.addWidget(username_label)
         
         self.username_input = QLineEdit()
-        self.username_input.setPlaceholderText("Enter your username")
+        self.username_input.setPlaceholderText("Choose a username")
         form_layout.addWidget(self.username_input)
+        
+        # Email field
+        email_label = QLabel("Email")
+        email_label.setObjectName("field-label")
+        form_layout.addWidget(email_label)
+        
+        self.email_input = QLineEdit()
+        self.email_input.setPlaceholderText("Enter your email address")
+        form_layout.addWidget(self.email_input)
         
         # Password field
         password_label = QLabel("Password")
@@ -193,45 +177,44 @@ class LoginDialog(QDialog):
         form_layout.addWidget(password_label)
         
         self.password_input = QLineEdit()
-        self.password_input.setPlaceholderText("Enter your password")
+        self.password_input.setPlaceholderText("Create a password")
         self.password_input.setEchoMode(QLineEdit.Password)
         form_layout.addWidget(self.password_input)
         
-        # Error label – מוצג רק במקרה של כישלון
+        # Confirm Password field
+        confirm_password_label = QLabel("Confirm Password")
+        confirm_password_label.setObjectName("field-label")
+        form_layout.addWidget(confirm_password_label)
+        
+        self.confirm_password_input = QLineEdit()
+        self.confirm_password_input.setPlaceholderText("Confirm your password")
+        self.confirm_password_input.setEchoMode(QLineEdit.Password)
+        form_layout.addWidget(self.confirm_password_input)
+        
+        # Error label
         self.error_label = QLabel("")
-        self.error_label.setStyleSheet("color: red; font-size: 14px;")
+        self.error_label.setObjectName("error-text")
         self.error_label.setAlignment(Qt.AlignCenter)
         form_layout.addWidget(self.error_label)
-        
-        # Remember me and forgot password
-        remember_forgot_layout = QHBoxLayout()
-        self.remember_checkbox = QCheckBox("Remember me")
-        remember_forgot_layout.addWidget(self.remember_checkbox)
-        forgot_button = QPushButton("Forgot Password?")
-        forgot_button.setObjectName("forgot-button")
-        remember_forgot_layout.addWidget(forgot_button)
-        remember_forgot_layout.setAlignment(forgot_button, Qt.AlignRight)
-        form_layout.addLayout(remember_forgot_layout)
-        form_layout.addSpacing(10)
         
         card_layout.addLayout(form_layout)
         
         # Buttons
-        self.login_button = QPushButton("Sign In")
-        self.login_button.setObjectName("login-button")
-        self.login_button.clicked.connect(self.on_login_clicked)
-        card_layout.addWidget(self.login_button)
+        self.register_button = QPushButton("Create Account")
+        self.register_button.setObjectName("register-button")
+        self.register_button.clicked.connect(self.on_register_clicked)
+        card_layout.addWidget(self.register_button)
         
         card_layout.addSpacing(10)
         
-        self.register_button = QPushButton("Create New Account")
-        self.register_button.setObjectName("register-button")
-        self.register_button.clicked.connect(self.on_register_clicked)  # Add this line
-        card_layout.addWidget(self.register_button)
+        self.cancel_button = QPushButton("Cancel")
+        self.cancel_button.setObjectName("cancel-button")
+        self.cancel_button.clicked.connect(self.reject)
+        card_layout.addWidget(self.cancel_button)
         
         # Footer
         card_layout.addSpacing(20)
-        footer_text = QLabel("By signing in, you agree to our Terms of Service and Privacy Policy")
+        footer_text = QLabel("By creating an account, you agree to our Terms of Service and Privacy Policy")
         footer_text.setObjectName("footer-text")
         footer_text.setAlignment(Qt.AlignCenter)
         footer_text.setWordWrap(True)
@@ -239,39 +222,32 @@ class LoginDialog(QDialog):
         
         main_layout.addWidget(card, 1, Qt.AlignCenter)
         self.setLayout(main_layout)
-
-    def on_register_clicked(self):
-        """Open the registration dialog when the register button is clicked"""
-        from views.register_view import RegisterDialog
-        from presenters.register_presenter import RegisterPresenter
-        
-        register_dialog = RegisterDialog(self)
-        register_presenter = RegisterPresenter(register_dialog, self.presenter.model)
-        register_dialog.set_presenter(register_presenter)
-        
-        if register_dialog.exec():
-            # If registration was successful, automatically fill in the username
-            username = register_dialog.username_input.text()
-            self.username_input.setText(username)
-            self.password_input.setFocus()
-        
-
-    def on_login_clicked(self):
-        username = self.username_input.text()
-        password = self.password_input.text()
-        print(f"LoginDialog: on_login_clicked() called with username={username}, password={password}")
-        result = self.presenter.perform_login(username, password)
-        if result:
-            print("LoginDialog: Login successful, closing dialog.")
-            self.username = username
-            self.accept()
-        else:
-            print("LoginDialog: Login failed, please try again.")
-            self.error_label.setText("Username or password incorrect.")
-
-    def get_username(self):
-        return self.username
     
     def set_presenter(self, presenter):
         self.presenter = presenter
-        # print("LoginDialog: Presenter set externally")
+    
+    def on_register_clicked(self):
+        username = self.username_input.text()
+        email = self.email_input.text()
+        password = self.password_input.text()
+        confirm_password = self.confirm_password_input.text()
+        
+        # Validation
+        if not username or not email or not password or not confirm_password:
+            self.error_label.setText("All fields are required")
+            return
+            
+        if password != confirm_password:
+            self.error_label.setText("Passwords do not match")
+            return
+            
+        # Call presenter
+        print(f"RegisterDialog: Attempting to register user: {username}")
+        result = self.presenter.perform_registration(username, email, password)
+        
+        if result:
+            print("RegisterDialog: Registration successful, closing dialog")
+            self.accept()
+        else:
+            print("RegisterDialog: Registration failed")
+            self.error_label.setText("Registration failed. Username may already exist.")
