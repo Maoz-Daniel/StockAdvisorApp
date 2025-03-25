@@ -8,16 +8,25 @@ class TradeHistoryPresenter:
         self.current_chart_type = "bar"  # ניהול מצב הגרף בתוך ה-Presenter
 
     def load_trade_history(self):
-        """טוען את כל היסטוריית העסקאות ומעדכן את ה-View"""
-        trade_history = self.model.get_trade_history(start_date=None, end_date=None, stocks=[])
-        self.view.update_trade_table(trade_history)  # שליחת הנתונים ל-View
+        """טוען את כל היסטוריית העסקאות עבור המשתמש ומעדכן את ה-View"""
+        # נניח שה-Model שומר את user_id לאחר התחברות
+        user_id = getattr(self.model, "user_id", 1)  # ערך ברירת מחדל אם אין עדיין התחברות
+        trade_history = self.model.get_user_transactions(user_id)
+        self.view.update_trade_table(trade_history)
+
 
     def filter_trade_history(self, start_date, end_date, selected_stocks, selected_actions):
-        """מסנן את היסטוריית העסקאות לפי תאריך, מניות וסוגי פעולות"""
+        """מסנן את היסטוריית העסקאות לפי תאריך, מניות וסוגי פעולות, תוך שימוש בנתונים שכבר נשלפו."""
         print(f"📌 Presenter: Filtering trades from {start_date} to {end_date} for stocks: {selected_stocks}, Actions: {selected_actions}")
-        filtered_data = self.model.get_trade_history(start_date, end_date, selected_stocks, selected_actions)
+        # שליפת נתונים מעודכנים פעם אחת עבור המשתמש
+        user_id = getattr(self.model, "user_id", 1)
+        transactions = self.model.get_user_transactions(user_id)
+        
+        # סינון הנתונים שהתקבלו
+        filtered_data = self.model.get_trade_history(transactions, start_date, end_date, selected_stocks, selected_actions)
         print(f"📊 Filtered Data Received ({len(filtered_data)} results): {filtered_data}")
-        self.view.update_trade_table(filtered_data)  # שליחת הנתונים המסוננים ל-View
+        self.view.update_trade_table(filtered_data)
+
 
     def load_trade_chart_data(self):
         """טוען את הנתונים לגרף ומעדכן את ה-View"""
