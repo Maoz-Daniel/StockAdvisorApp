@@ -7,34 +7,24 @@ class MockStockModel:
         # Base API URL
         self.api_base_url = "http://localhost:5124/api"
 
-        # User info (mock)
-        self.username = "default_user"
-        self.users = {
-            "maoz": "3242",
-            "1": "1",
-            "noam": "123"
-        }
-        
-        # Portfolio data (mock)
+
         self.portfolio = {
-            "AAPL": {"price": 182.30, "quantity": 35},
-            "GOOGL": {"price": 2835.55, "quantity": 5},
-            "MSFT": {"price": 419.20, "quantity": 10},
-            "TSLA": {"price": 167.50, "quantity": 12},
-            "AMZN": {"price": 183.80, "quantity": 8},
+    "AAPL": {"price": 182.30, "quantity": 35},
+    "GOOGL": {"price": 2850.00, "quantity": 5},
+    "MSFT": {"price": 415.00, "quantity": 10},
         }
 
-        # Trade history (mock)
         self.trade_history = [
-            {"date": datetime.now() - timedelta(days=10), "stock": "AAPL", "action": "Buy", "quantity": 10, "price": 180.00},
-            {"date": datetime.now() - timedelta(days=8), "stock": "GOOGL", "action": "Sell", "quantity": 2, "price": 2850.00},
-            {"date": datetime.now() - timedelta(days=6), "stock": "MSFT", "action": "Buy", "quantity": 5, "price": 415.00},
-            {"date": datetime.now() - timedelta(days=4), "stock": "TSLA", "action": "Buy", "quantity": 7, "price": 200.00},
-            {"date": datetime.now() - timedelta(days=3), "stock": "AMZN", "action": "Sell", "quantity": 3, "price": 3400.00},
-            {"date": datetime.now() - timedelta(days=2), "stock": "NFLX", "action": "Buy", "quantity": 8, "price": 500.00},
-            {"date": datetime.now() - timedelta(days=1), "stock": "META", "action": "Sell", "quantity": 6, "price": 280.00},
-            {"date": datetime.now(), "stock": "NVDA", "action": "Buy", "quantity": 4, "price": 750.00},
-        ]
+                {"date": datetime.now() - timedelta(days=10), "stock": "AAPL", "action": "Buy", "quantity": 10, "price": 180.00},
+                {"date": datetime.now() - timedelta(days=8), "stock": "GOOGL", "action": "Sell", "quantity": 2, "price": 2850.00},
+                {"date": datetime.now() - timedelta(days=6), "stock": "MSFT", "action": "Buy", "quantity": 5, "price": 415.00},
+                {"date": datetime.now() - timedelta(days=4), "stock": "TSLA", "action": "Buy", "quantity": 7, "price": 200.00},
+                {"date": datetime.now() - timedelta(days=3), "stock": "AMZN", "action": "Sell", "quantity": 3, "price": 3400.00},
+                {"date": datetime.now() - timedelta(days=2), "stock": "NFLX", "action": "Buy", "quantity": 8, "price": 500.00},
+                {"date": datetime.now() - timedelta(days=1), "stock": "META", "action": "Sell", "quantity": 6, "price": 280.00},
+                {"date": datetime.now(), "stock": "NVDA", "action": "Buy", "quantity": 4, "price": 750.00},
+            ]
+    
     
     def search_symbol_by_name(self, company_name):
         """
@@ -99,20 +89,6 @@ class MockStockModel:
             
             if response.status_code == 200:
                 history_data = response.json()
-                print(f"Received {len(history_data)} history records for {symbol}")
-                
-                # Print the raw data to console
-                print("\nHistorical Data (Weekly):")
-                print("-" * 80)
-                print("Date\t\tOpen\tHigh\tLow\tClose\tVolume")
-                print("-" * 80)
-                
-                for record in history_data:
-                    date = record.get("date", "").split("T")[0]  # Just get the date part
-                    print(f"{date}\t{record.get('open', 0):.2f}\t{record.get('high', 0):.2f}\t"
-                        f"{record.get('low', 0):.2f}\t{record.get('close', 0):.2f}\t{record.get('volume', 0):,}")
-                
-                # Format data for chart [(timestamp, price), ...]
                 chart_data = []
                 for record in history_data:
                     # Convert date string to timestamp
@@ -133,35 +109,6 @@ class MockStockModel:
             # Generate mock data as fallback
             return self.generate_mock_history(symbol)
         
-    def generate_mock_history(self, symbol):
-        """Generate mock price history data for testing"""
-        current_price = self.get_current_price(symbol)
-        chart_data = []
-        
-        # Generate weekly data for the past year
-        end_date = datetime.now()
-        current_date = end_date - timedelta(days=365)
-        
-        # Start with a price 30% different from current
-        price = current_price * (0.7 + 0.6 * random.random())
-        
-        # Generate data points
-        while current_date <= end_date:
-            timestamp = int(current_date.timestamp() * 1000)
-            
-            # Add some random price movement
-            change = random.normalvariate(0, 0.03)
-            # Trend toward current price
-            trend = 0.02 * (current_price - price) / current_price
-            price = max(0.1, price * (1 + change + trend))
-            
-            chart_data.append((timestamp, price))
-            current_date += timedelta(days=7)  # Weekly data
-        
-        # Ensure last point is current price
-        chart_data.append((int(end_date.timestamp() * 1000), current_price))
-        
-        return chart_data
     
     def get_current_price(self, symbol):
         """Get current price for a stock"""
@@ -170,34 +117,50 @@ class MockStockModel:
             
             if response.status_code == 200:
                 price_data = response.json()
-                return price_data["currentPrice"]
+                
+                # Check for different possible field names
+                if "currentPrice" in price_data:
+                    print(f"Found currentPrice for {symbol}: {price_data['currentPrice']}")
+                    return price_data["currentPrice"]
+                elif "price" in price_data:  
+                    print(f"Found price for {symbol}: {price_data['price']}")
+                    return price_data["price"]
+                else:
+                    print(f"No price field found in response for {symbol}")
             else:
-                # Fallback to portfolio or default price
-                if symbol in self.portfolio:
-                    return self.portfolio[symbol]["price"]
-                
-                # Default prices
-                default_prices = {
-                    "AAPL": 175.34,
-                    "MSFT": 384.99,
-                    "GOOGL": 137.14,
-                    "AMZN": 175.90,
-                    "TSLA": 248.50,
-                    "META": 465.80,
-                    "NFLX": 625.70,
-                    "NVDA": 950.20
-                }
-                
-                return default_prices.get(symbol, 100.0)
-                
-        except Exception as e:
-            print(f"Error getting current price: {str(e)}")
+                print(f"API error for {symbol} price: {response.status_code} - {response.text}")
             
-            # Fallback to portfolio or default price
-            if symbol in self.portfolio:
-                return self.portfolio[symbol]["price"]
-            return 100.0  # Default
-
+            # If we get here, the price API failed - try Yahoo history API
+            print(f"Attempting to get latest price from Yahoo history for {symbol}")
+            raw_history = self.get_stock_history(symbol)
+            
+            if raw_history and len(raw_history) > 0:
+                # Get the most recent closing price from the tuple (timestamp, close_price)
+                latest_price = raw_history[-1][1]
+                print(f"Using latest closing price from Yahoo history for {symbol}: {latest_price}")
+                return latest_price
+            
+            # If everything fails, use generic default
+            print(f"All price sources failed. Using default price (100.0) for {symbol}")
+            return 100.0
+                    
+        except Exception as e:
+            print(f"Error getting current price for {symbol}: {str(e)}")
+            
+            # Try Yahoo history API in the exception block
+            try:
+                print(f"Trying Yahoo history after exception for {symbol}")
+                raw_history = self.get_stock_history(symbol)
+                
+                if raw_history and len(raw_history) > 0:
+                    latest_price = raw_history[-1][1]
+                    print(f"Using latest closing price after exception for {symbol}: {latest_price}")
+                    return latest_price
+            except Exception as history_error:
+                print(f"Error getting historical price: {history_error}")
+            
+            # Final fallback
+            return 100.0
     def get_trade_chart_data(self):
         """Get chart data for trade history visualization"""
         chart_data = []
@@ -223,11 +186,56 @@ class MockStockModel:
         return self.username
 
     def get_portfolio_data(self):
-        print("Getting portfolio data")
-        return [
-            (stock, f"${data['price']:.2f}", f"{data['quantity']}", f"${data['price'] * data['quantity']:.2f}")
-            for stock, data in self.portfolio.items()
-        ]
+        print("Getting portfolio data from backend")
+        # נניח שהמשתמש מחובר ויש לנו את user_id (אם לא, נשתמש ב-1 כברירת מחדל)
+        user_id = getattr(self, "user_id", 1)
+        try:
+            url = f"{self.api_base_url}/Transaction/portfolio/{user_id}"
+            print(f"Fetching portfolio data from: {url}")
+            response = requests.get(url)
+            if response.status_code == 200:
+                portfolio_items = response.json()
+                print("Portfolio data received:", portfolio_items)
+            else:
+                print(f"Failed to get portfolio data: {response.status_code} - {response.text}")
+                portfolio_items = []
+        except Exception as e:
+            print(f"Error getting portfolio data: {e}")
+            portfolio_items = []
+        
+        # לאחר קבלת הנתונים – רשימה של פריטים עם: Symbol, Quantity, AverageBuyPrice
+        result = []
+        total_portfolio_value = 0.0
+        for item in portfolio_items:
+            # נסיון לקבל את הערכים – יתכן שהמפתחות שונים (עם אותיות גדולות או קטנות)
+            symbol = item.get("Symbol") or item.get("symbol")
+            quantity = float(item.get("Quantity") or item.get("quantity") or 0)
+            avg_buy_price = float(item.get("AverageBuyPrice") or item.get("averageBuyPrice") or 0)
+            # שליפת מחיר נוכחי באמצעות המתודה get_current_price
+            current_price = self.get_current_price(symbol)
+            market_value = current_price * quantity
+            total_portfolio_value += market_value
+            
+            result.append({
+                "symbol": symbol,
+                "company_name": "",  # ניתן להוסיף קריאה ל-API לקבלת שם החברה במידה וזה נחוץ
+                "quantity": quantity,
+                "avg_buy_price": avg_buy_price,
+                "current_price": current_price,
+                "market_value": market_value,
+                "unrealized_pl": (current_price - avg_buy_price) * quantity,
+                "daily_change": None,  # ניתן להוסיף קריאה נוספת ל-API לקבלת שינוי יומי
+            })
+        
+        # חשב אחוז הקצאה עבור כל פריט בהתבסס על שווי התיק הכולל
+        for item in result:
+            if total_portfolio_value > 0:
+                item["allocation"] = (item["market_value"] / total_portfolio_value) * 100
+            else:
+                item["allocation"] = 0
+        return result
+
+
 
     def buy_stock(self, stock, quantity, price):
         print(f"Buying stock: {stock}, quantity: {quantity}, price: {price}")

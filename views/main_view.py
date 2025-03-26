@@ -421,21 +421,34 @@ class MainView(QMainWindow):
         self.status_bar.showMessage(message)
         
     def update_portfolio_table(self, portfolio_data):
-        """Update portfolio table with data"""
+        """Update portfolio table with enhanced data"""
+        headers = ["Symbol", "Company", "Qty", "Avg Buy Price", "Current Price", "Daily Change", "Market Value", "Unrealized P/L", "Allocation %"]
+        self.stock_table.setColumnCount(len(headers))
+        self.stock_table.setHorizontalHeaderLabels(headers)
         self.stock_table.setRowCount(len(portfolio_data))
-        for row, stock_data in enumerate(portfolio_data):
-            for col, value in enumerate(stock_data):
-                item = QTableWidgetItem(str(value))
-                item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-                
-                # Style daily change column with colors
-                if col == 2 and "+" in str(value):
-                    item.setForeground(QColor("#66CFA6"))
-                elif col == 2 and "-" in str(value):
-                    item.setForeground(QColor("#F87171"))
-                
-                # Style portfolio value with gold tint for increased visual emphasis
-                if col == 4:  # Portfolio Value column
-                    item.setForeground(QColor("#FFE866"))
-                
+        for row, data in enumerate(portfolio_data):
+            # נעבור על כל עמודה לפי סדר הנתונים
+            symbol_item = QTableWidgetItem(data["symbol"])
+            company_item = QTableWidgetItem(data["company_name"] if data["company_name"] else "-")
+            qty_item = QTableWidgetItem(str(data["quantity"]))
+            avg_price_item = QTableWidgetItem(f"${data['avg_buy_price']:.2f}")
+            current_price_item = QTableWidgetItem(f"${data['current_price']:.2f}")
+            daily_change_val = data["daily_change"] if data["daily_change"] is not None else "-"
+            daily_change_item = QTableWidgetItem(str(daily_change_val))
+            market_value_item = QTableWidgetItem(f"${data['market_value']:.2f}")
+            unrealized_pl_item = QTableWidgetItem(f"${data['unrealized_pl']:.2f}")
+            allocation_item = QTableWidgetItem(f"{data['allocation']:.1f}%")
+            
+            # ניתן להוסיף עיצוב: למשל, אם unrealized_pl חיובי להציג בירוק, ואם שלילי באדום
+            if data["unrealized_pl"] >= 0:
+                unrealized_pl_item.setForeground(QColor("#66CFA6"))
+            else:
+                unrealized_pl_item.setForeground(QColor("#F87171"))
+            
+            # נניח daily_change_item יעוצב בדומה, אם ערך מספרי
+            # (ניתן להוסיף לוגיקה נוספת כאן)
+            
+            items = [symbol_item, company_item, qty_item, avg_price_item, current_price_item, daily_change_item, market_value_item, unrealized_pl_item, allocation_item]
+            for col, item in enumerate(items):
+                item.setTextAlignment(Qt.AlignCenter)
                 self.stock_table.setItem(row, col, item)
