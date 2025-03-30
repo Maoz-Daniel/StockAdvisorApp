@@ -185,10 +185,19 @@ class MockStockModel:
         print(f"Returning username: {self.username}")
         return self.username
 
+    def get_portfolio_total_value(self):
+        """Return the total value and P/L that was calculated in get_portfolio_data"""
+        if not hasattr(self, 'total_portfolio_value') or not hasattr(self, 'total_unrealized_pl'):
+            # If totals aren't available, calculate them
+            self.get_portfolio_data()
+        
+        return self.total_portfolio_value, self.total_unrealized_pl
+        
     def get_portfolio_data(self):
         print("Getting portfolio data from backend")
-        # נניח שהמשתמש מחובר ויש לנו את user_id (אם לא, נשתמש ב-1 כברירת מחדל)
+        # Get user_id (default to 1 if not available)
         user_id = getattr(self, "user_id", 1)
+        
         try:
             url = f"{self.api_base_url}/Transaction/portfolio/{user_id}"
             print(f"Fetching portfolio data from: {url}")
@@ -203,36 +212,51 @@ class MockStockModel:
             print(f"Error getting portfolio data: {e}")
             portfolio_items = []
         
-        # לאחר קבלת הנתונים – רשימה של פריטים עם: Symbol, Quantity, AverageBuyPrice
+        # Process the data and calculate totals
         result = []
         total_portfolio_value = 0.0
+        total_unrealized_pl = 0.0
+        
         for item in portfolio_items:
-            # נסיון לקבל את הערכים – יתכן שהמפתחות שונים (עם אותיות גדולות או קטנות)
+            # Get values (handling different key cases)
             symbol = item.get("Symbol") or item.get("symbol")
             quantity = float(item.get("Quantity") or item.get("quantity") or 0)
             avg_buy_price = float(item.get("AverageBuyPrice") or item.get("averageBuyPrice") or 0)
-            # שליפת מחיר נוכחי באמצעות המתודה get_current_price
-            current_price = self.get_current_price(symbol)
-            market_value = current_price * quantity
-            total_portfolio_value += market_value
             
+            # Get current price
+            current_price = self.get_current_price(symbol)
+            
+            # Calculate values for this position
+            market_value = current_price * quantity
+            unrealized_pl = (current_price - avg_buy_price) * quantity
+            
+            # Add to totals
+            total_portfolio_value += market_value
+            total_unrealized_pl += unrealized_pl
+            
+            # Add to result
             result.append({
                 "symbol": symbol,
-                "company_name": "",  # ניתן להוסיף קריאה ל-API לקבלת שם החברה במידה וזה נחוץ
+                "company_name": "",
                 "quantity": quantity,
                 "avg_buy_price": avg_buy_price,
                 "current_price": current_price,
                 "market_value": market_value,
-                "unrealized_pl": (current_price - avg_buy_price) * quantity,
-                "daily_change": None,  # ניתן להוסיף קריאה נוספת ל-API לקבלת שינוי יומי
+                "unrealized_pl": unrealized_pl,
+                "daily_change": None,
             })
         
-        # חשב אחוז הקצאה עבור כל פריט בהתבסס על שווי התיק הכולל
+        # Calculate allocation percentages
         for item in result:
             if total_portfolio_value > 0:
                 item["allocation"] = (item["market_value"] / total_portfolio_value) * 100
             else:
                 item["allocation"] = 0
+        
+        # Store totals for easy access
+        self.total_portfolio_value = total_portfolio_value
+        self.total_unrealized_pl = total_unrealized_pl
+        
         return result
 
 

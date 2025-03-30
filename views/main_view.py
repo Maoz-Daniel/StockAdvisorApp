@@ -420,6 +420,46 @@ class MainView(QMainWindow):
         """Update status bar message"""
         self.status_bar.showMessage(message)
         
+    def update_portfolio_summary(self, total_value, total_unrealized_pl):
+        """Update the portfolio summary section with total value and P/L"""
+        print(f"Updating portfolio summary: Value=${total_value:.2f}, P/L=${total_unrealized_pl:.2f}")
+        
+        # Update the total portfolio value
+        for widget in self.findChildren(QLabel):
+            if widget.objectName() == "large-value":
+                widget.setText(f"${total_value:,.2f}")
+        
+        # Update the unrealized P/L instead of daily change
+        # Find the change_amount label (which currently shows daily change)
+        for widget in self.findChildren(QLabel):
+            if widget.text().startswith("+$") or widget.text().startswith("-$"):
+                # Format with appropriate color
+                if total_unrealized_pl >= 0:
+                    widget.setText(f"+${total_unrealized_pl:,.2f}")
+                    widget.setStyleSheet("color: #66CFA6; font-size: 16px; font-weight: bold;")
+                else:
+                    widget.setText(f"-${abs(total_unrealized_pl):,.2f}")
+                    widget.setStyleSheet("color: #F87171; font-size: 16px; font-weight: bold;")
+                break
+        
+        # Update the label text above the P/L value
+        for widget in self.findChildren(QLabel):
+            if widget.text() == "Today's Change":
+                widget.setText("Total Profit/Loss")
+                break
+                
+    def get_portfolio_total_value(self, portfolio_data=None):
+        print("DEBUGGING: get_portfolio_total_value method called")
+        portfolio_items = portfolio_data if portfolio_data is not None else self.get_portfolio_data()
+        # Sum up the market values and unrealized P/L
+        total_value = sum(item["market_value"] for item in portfolio_items)
+        total_unrealized_pl = sum(item["unrealized_pl"] for item in portfolio_items)
+        
+        print(f"Total portfolio value calculated: ${total_value:.2f}")
+        print(f"Total unrealized P/L calculated: ${total_unrealized_pl:.2f}")
+        
+        return total_value, total_unrealized_pl
+    
     def update_portfolio_table(self, portfolio_data):
         """Update portfolio table with enhanced data"""
         headers = ["Symbol", "Company", "Qty", "Avg Buy Price", "Current Price", "Daily Change", "Market Value", "Unrealized P/L", "Allocation %"]
