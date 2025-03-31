@@ -163,3 +163,4 @@ class BuyOrderPresenter(QObject):
         except Exception as e:
             self.view.show_error_message(f"Error generating preview: {str(e)}")
             return False
+    

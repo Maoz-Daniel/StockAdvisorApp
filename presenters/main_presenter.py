@@ -16,7 +16,7 @@ class MainPresenter:
         """ Load username and update main header """
         username = self.model.get_username()
         self.view.update_header(f"Welcome, {username}!")
-        self.view.update_status_bar(f"Logged in as: {username} | Market Status: Open | Last Update: {QDate.currentDate().toString('dd/MM/yyyy')} 10:30")
+        self.view.update_status_bar(f"Logged in as: {username} | Market Status: Open | Last Update: {QDate.currentDate().toString('dd/MM/yyyy')}")
 
 
     def load_portfolio_data(self):

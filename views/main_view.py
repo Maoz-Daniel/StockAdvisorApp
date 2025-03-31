@@ -2,14 +2,16 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+from PySide6.QtSvg import QSvgRenderer
+
 from PySide6.QtWidgets import (
     QMainWindow, QLabel, QVBoxLayout, QWidget, QPushButton, QMenuBar, QStatusBar,
     QHBoxLayout, QTableWidget, QTableWidgetItem, QDateEdit, QComboBox, QMenu,
     QHeaderView, QFrame, QTabWidget, QGraphicsDropShadowEffect, QApplication, QScrollArea,
-    QMessageBox, QSizePolicy, QGraphicsOpacityEffect
+    QMessageBox, QSizePolicy, QGraphicsOpacityEffect, QSpacerItem, QLineEdit, QDialog, QDialogButtonBox, QGridLayout, QGroupBox,
 )
-from PySide6.QtGui import QAction, QColor, QFont, QPalette, QBrush, QGradient, QLinearGradient, QPixmap, QIcon
-from PySide6.QtCore import Qt, QDate, QSize, QPropertyAnimation, QEasingCurve, QTimer
+from PySide6.QtGui import QAction, QColor, QFont, QPalette, QBrush, QGradient, QLinearGradient, QPixmap, QIcon, QPainter
+from PySide6.QtCore import Qt, QDate, QSize, QPropertyAnimation, QEasingCurve, QTimer, QByteArray
 
 from buy_order_view import BuyOrderWindow
 from sell_order_view import SellOrderWindow
@@ -18,13 +20,19 @@ from trade_history_view import TradeHistoryWindow
 
 from presenters.main_presenter import MainPresenter
 
-# Import the theme
+# Import the FaceID6 theme
+from assets.theme import FaceID6Theme
 from assets.theme import LuxuryTheme
+from assets.theme import DarkLuxuryTheme
 
 
 class MainView(QMainWindow):
     def __init__(self, username, model, parent=None):
         super().__init__()
+        
+        # Apply theme first
+        self.setStyleSheet(FaceID6Theme.STYLE_SHEET)
+
         self.username = username
         self.model = model
 
@@ -38,12 +46,12 @@ class MainView(QMainWindow):
         screen_size = screen.size()
         self.resize(int(screen_size.width() * 0.85), int(screen_size.height() * 0.85))
 
-        # Apply luxury theme
-        self.setStyleSheet(LuxuryTheme.STYLE_SHEET)
+        # Create header bar early
+        self.create_header_bar()
 
-        # Create UI components
-        self.setup_menu_bar()
+        # Setup layouts and other components
         self.setup_main_layout()
+        # self.setup_menu_bar()
         self.create_header()
         self.create_action_buttons()
         self.create_portfolio_view()
@@ -56,6 +64,260 @@ class MainView(QMainWindow):
 
         print(f"MainView.__init__: Received model with username: {model.get_username()}")
 
+
+    def create_header_bar(self):
+        """Create a visible header bar with logo and navigation buttons"""
+        # Create header frame
+        self.header_frame = QFrame(self)
+        self.header_frame.setObjectName("header-bar")
+        self.header_frame.setGeometry(0, 0, self.width(), 60)
+        
+        # Header layout
+        header_layout = QHBoxLayout(self.header_frame)
+        header_layout.setContentsMargins(15, 0, 15, 0)
+        
+        # SVG Logo with dollar sign
+        svg_data = """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-dollar-sign h-8 w-8 text-emerald-400"><line x1="12" x2="12" y1="2" y2="22"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>"""
+
+        # Create logo from SVG
+        logo_renderer = QSvgRenderer(QByteArray(svg_data.encode()))
+        logo_pixmap = QPixmap(24, 24)
+        logo_pixmap.fill(Qt.transparent)
+        logo_painter = QPainter(logo_pixmap)
+        logo_renderer.render(logo_painter)
+        logo_painter.end()
+        
+        # Logo widget
+        logo_label = QLabel()
+        logo_label.setPixmap(logo_pixmap)
+        
+        # App name
+        app_name = QLabel("InvestPro")
+        app_name.setStyleSheet("color: white; font-size: 20px; font-weight: bold; margin-left: 10px;")
+        
+        # Logo container
+        logo_container = QHBoxLayout()
+        logo_container.addWidget(logo_label)
+        logo_container.addWidget(app_name)
+        logo_container.addStretch()
+        
+        # Navigation buttons layout
+        nav_layout = QHBoxLayout()
+        
+        # Define menu options with actions
+        menu_options = [
+            ("Main Menu", [
+                ("Dashboard", self.open_dashboard),
+                ("My Portfolio", self.open_portfolio),
+                ("Market Overview", self.open_market_overview),
+                ("Reports & Analysis", self.open_reports),
+                ("Account Settings", self.open_account_settings),
+                ("Exit", self.close)
+            ]),
+            ("Trading", [
+                ("Buy Assets", self.presenter.open_buy_order),
+                ("Sell Assets", self.presenter.open_sell_order),
+                ("Order History", self.presenter.open_trade_history)
+            ]),
+            ("Analytics", [
+                ("Performance", self.open_performance),
+                ("Risk Analysis", self.open_risk_analysis),
+                ("AI Insights", self.presenter.open_ai_advisor)
+            ]),
+            ("Help", [
+                ("Documentation", self.open_documentation),
+                ("Support", self.open_support),
+                ("About", self.open_about)
+            ])
+        ]
+        
+        # Create dropdown menus
+        for menu_name, menu_items in menu_options:
+            menu_btn = QPushButton(menu_name)
+            menu_btn.setStyleSheet("""
+                QPushButton {
+                    color: #D1D5DB;
+                    background: transparent;
+                    border: none;
+                    padding: 8px 12px;
+                    font-size: 14px;
+                }
+                QPushButton:hover {
+                    color: white;
+                }
+            """)
+            
+            # Create dropdown menu
+            dropdown_menu = QMenu()
+            for item_name, action in menu_items:
+                menu_action = dropdown_menu.addAction(item_name)
+                menu_action.triggered.connect(action)
+            
+            # Set dropdown menu for button
+            menu_btn.setMenu(dropdown_menu)
+            
+            nav_layout.addWidget(menu_btn)
+        
+        # Account button
+        account_btn = QPushButton()
+        account_btn.setIcon(QIcon.fromTheme("user-identity"))  # Fallback icon
+        svg_user_data = """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="transparent" stroke="#D1D5DB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user h-6 w-6"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>"""
+        
+        # Create user icon from SVG
+        user_renderer = QSvgRenderer(QByteArray(svg_user_data.encode()))
+        user_pixmap = QPixmap(24, 24)
+        user_pixmap.fill(Qt.transparent)
+        user_painter = QPainter(user_pixmap)
+        user_renderer.render(user_painter)
+        user_painter.end()
+        
+        account_btn.setIcon(QIcon(user_pixmap))
+        account_btn.setStyleSheet("""
+            QPushButton {
+                background: rgba(255, 255, 255, 0.1);
+                border: none;
+                border-radius: 20px;
+                padding: 8px;
+            }
+            QPushButton:hover {
+                background: rgba(255, 255, 255, 0.2);
+            }
+        """)
+        
+        # Main header layout
+        header_layout.addLayout(logo_container)
+        header_layout.addLayout(nav_layout)
+        header_layout.addStretch()
+        header_layout.addWidget(account_btn)
+        
+        # Overall frame styling
+        self.header_frame.setStyleSheet("""
+            QFrame {
+                background-color: #1F2937;
+                color: white;
+            }
+        """)
+    def setup_header_bar(self):
+        """Create a visible header bar with logo and account button"""
+        # Create header frame
+        self.header_frame = QFrame(self)
+        self.header_frame.setObjectName("header-bar")
+        self.header_frame.setGeometry(0, 0, self.width(), 60)
+        
+        # Header layout
+        header_layout = QHBoxLayout(self.header_frame)
+        header_layout.setContentsMargins(15, 0, 15, 0)
+        
+        # SVG Logo with dollar sign
+        svg_data = """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-dollar-sign h-8 w-8 text-emerald-400"><line x1="12" x2="12" y1="2" y2="22"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>"""
+
+        # Create logo from SVG
+        logo_renderer = QSvgRenderer(QByteArray(svg_data.encode()))
+        logo_pixmap = QPixmap(24, 24)
+        logo_pixmap.fill(Qt.transparent)
+        logo_painter = QPainter(logo_pixmap)
+        logo_renderer.render(logo_painter)
+        logo_painter.end()
+        
+        # Logo widget
+        logo_label = QLabel()
+        logo_label.setPixmap(logo_pixmap)
+        
+        # App name
+        app_name = QLabel("InvestPro")
+        app_name.setStyleSheet("color: white; font-size: 20px; font-weight: bold; margin-left: 10px;")
+        
+        # Logo container
+        logo_container = QHBoxLayout()
+        logo_container.addWidget(logo_label)
+        logo_container.addWidget(app_name)
+        logo_container.addStretch()
+        
+        # Navigation buttons
+        nav_layout = QHBoxLayout()
+        
+        # Define menu options
+        menu_options = [
+            ("Main Menu", [
+                ("Dashboard", "lucide-layout-dashboard"),
+                ("My Portfolio", "lucide-pie-chart"),
+                ("Market Overview", "lucide-bar-chart3"),
+                ("Reports & Analysis", "lucide-line-chart"),
+                ("Account Settings", "lucide-settings")
+            ]),
+            ("Trading", [
+                ("Buy Assets", "lucide-trending-up"),
+                ("Sell Assets", "lucide-trending-down"),
+                ("Order History", "lucide-history")
+            ]),
+            ("Analytics", [
+                ("Performance", "lucide-line-chart"),
+                ("Risk Analysis", "lucide-shield-alert"),
+                ("AI Insights", "lucide-brain")
+            ]),
+            ("Help", [
+                ("Documentation", "lucide-book-open"),
+                ("Support", "lucide-help-circle"),
+                ("About", "lucide-info")
+            ])
+        ]
+        
+        # Create dropdown menus
+        for menu_name, _ in menu_options:
+            menu_btn = QPushButton(menu_name)
+            menu_btn.setStyleSheet("""
+                QPushButton {
+                    color: #D1D5DB;
+                    background: transparent;
+                    border: none;
+                    padding: 8px 12px;
+                    font-size: 14px;
+                }
+                QPushButton:hover {
+                    color: white;
+                }
+            """)
+            nav_layout.addWidget(menu_btn)
+        
+        # Account button
+        account_btn = QPushButton()
+        account_btn.setIcon(QIcon.fromTheme("user-identity"))  # Fallback icon
+        svg_user_data = """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user h-6 w-6"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>"""
+        
+        # Create user icon from SVG
+        user_renderer = QSvgRenderer(QByteArray(svg_user_data.encode()))
+        user_pixmap = QPixmap(24, 24)
+        user_pixmap.fill(Qt.transparent)
+        user_painter = QPainter(user_pixmap)
+        user_renderer.render(user_painter)
+        user_painter.end()
+        
+        account_btn.setIcon(QIcon(user_pixmap))
+        account_btn.setStyleSheet("""
+            QPushButton {
+                background: rgba(255, 255, 255, 0.1);
+                border: none;
+                border-radius: 20px;
+                padding: 8px;
+            }
+            QPushButton:hover {
+                background: rgba(255, 255, 255, 0.2);
+            }
+        """)
+        
+        # Main header layout
+        header_layout.addLayout(logo_container)
+        header_layout.addLayout(nav_layout)
+        header_layout.addStretch()
+        header_layout.addWidget(account_btn)
+        
+        # Overall frame styling
+        self.header_frame.setStyleSheet("""
+            QFrame {
+                background-color: #1F2937;
+                color: white;
+            }
+        """)
     def setup_menu_bar(self):
         """Setup the application menu bar"""
         self.menu_bar = QMenuBar(self)
@@ -105,39 +367,64 @@ class MainView(QMainWindow):
         help_menu.addAction("Support")
         help_menu.addAction("About")
 
-    def setup_main_layout(self):
-        """Setup the main layout with scroll area"""
-        # Main container
-        self.main_layout = QVBoxLayout()
-        self.main_layout.setContentsMargins(30, 30, 30, 30)
-        self.main_layout.setSpacing(25)
+    def resizeEvent(self, event):
+        """Handle resize events to adjust header bar width"""
+        super().resizeEvent(event)
+        if hasattr(self, 'header_frame'):
+            # Ensure the header bar spans the full width of the window and stays at the top
+            self.header_frame.setGeometry(0, 0, self.width(), 60)
 
+    def setup_main_layout(self):
+        """Setup the main layout with a fixed header and scrollable content"""
+        # Create a main vertical layout for the entire window
+        main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+
+        # Ensure the header frame is at the top and fixed
+        if hasattr(self, 'header_frame'):
+            main_layout.addWidget(self.header_frame)
+            self.header_frame.setFixedHeight(60)  # Ensure consistent height
+            self.header_frame.setObjectName("header-bar")  # Ensure correct styling
+
+        # Main container for scrollable content
         container = QWidget()
-        container.setLayout(self.main_layout)
+        self.main_layout = QVBoxLayout(container)
+        self.main_layout.setContentsMargins(20, 20, 20, 20)
+        self.main_layout.setSpacing(25)
 
         # Create scroll area
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setWidget(container)
         self.scroll_area.setFrameShape(QFrame.NoFrame)
-        self.setCentralWidget(self.scroll_area)
+
+        # Add scroll area to main layout
+        main_layout.addWidget(self.scroll_area)
+
+        # Create a central widget to hold the main layout
+        central_widget = QWidget()
+        central_widget.setLayout(main_layout)
+
+        # Set the central widget
+        self.setCentralWidget(central_widget)
 
     def create_header(self):
-        """Create elegant header with user greeting"""
+        """Create modern header with user greeting"""
         # Create header frame
         self.header_frame = QFrame()
         self.header_frame.setObjectName("header-frame")
         
-        # Add blue glow shadow effect with gold tint
+        # Add subtle shadow effect
         shadow = QGraphicsDropShadowEffect(self.header_frame)
-        shadow.setBlurRadius(20)
-        shadow.setColor(QColor(255, 215, 0, 30))  # Subtle gold glow
+        shadow.setBlurRadius(10)
+        shadow.setColor(QColor(0, 0, 0, 30))
         shadow.setOffset(0, 2)
         self.header_frame.setGraphicsEffect(shadow)
         
         # Header layout
         header_layout = QHBoxLayout(self.header_frame)
-        header_layout.setContentsMargins(25, 25, 25, 25)
+        header_layout.setContentsMargins(20, 20, 20, 20)
         
         # Left side with welcome message
         left_layout = QVBoxLayout()
@@ -155,19 +442,19 @@ class MainView(QMainWindow):
         left_layout.addWidget(subtitle)
         left_layout.addStretch()
         
-        # Right side with account summary and smart quote
+        # Right side with account summary
         right_frame = QFrame()
-        right_frame.setObjectName("gold-card")
+        right_frame.setObjectName("info-card")
         
         right_layout = QVBoxLayout(right_frame)
         
         account_label = QLabel("Premium Account")
-        account_label.setObjectName("gold-text")
+        account_label.setObjectName("account-text")
         
         last_login = QLabel("Last login: Today, 09:15 AM")
-        last_login.setStyleSheet("color: #C0C0C0; font-size: 12px;")
+        last_login.setStyleSheet("color: #666666; font-size: 12px;")
         
-        # Smart quote
+        # Quote
         smart_quote = QLabel("\"Precision in timing, diversity in selection, patience in growth.\"")
         smart_quote.setObjectName("quote-text")
         smart_quote.setWordWrap(True)
@@ -183,10 +470,11 @@ class MainView(QMainWindow):
         self.main_layout.addWidget(self.header_frame)
 
     def create_action_buttons(self):
-        """Create elegant action buttons"""
+        """Create modern action buttons"""
         # Section title
         action_title = QLabel("Investment Actions")
         action_title.setObjectName("section-title")
+        action_title.setStyleSheet("font-size: 22px; font-weight: 600;")
         self.main_layout.addWidget(action_title)
         
         # Button container
@@ -194,10 +482,10 @@ class MainView(QMainWindow):
         button_frame.setObjectName("card")
         button_frame.setStyleSheet("QFrame#card { padding: 20px; }")
         
-        # Gold-tinted glow shadow effect
+        # Shadow effect
         button_shadow = QGraphicsDropShadowEffect(button_frame)
-        button_shadow.setBlurRadius(15)
-        button_shadow.setColor(QColor(255, 215, 0, 20))
+        button_shadow.setBlurRadius(10)
+        button_shadow.setColor(QColor(0, 0, 0, 30))
         button_shadow.setOffset(0, 3)
         button_frame.setGraphicsEffect(button_shadow)
         
@@ -205,18 +493,137 @@ class MainView(QMainWindow):
         button_layout = QHBoxLayout(button_frame)
         button_layout.setSpacing(20)
         
-        # Create action buttons with reflective styling
-        self.btn_buy_order = QPushButton("📈 Buy Order")
+        svg_data = """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg>"""
+
+        # Create icon from SVG data
+        buy_icon = QIcon()
+        renderer = QSvgRenderer(QByteArray(svg_data.encode()))
+        pixmap = QPixmap(24, 24)
+        pixmap.fill(Qt.transparent)
+        painter = QPainter(pixmap)
+        renderer.render(painter)
+        painter.end()
+        buy_icon.addPixmap(pixmap)
+
+        # Create button with icon
+        self.btn_buy_order = QPushButton("Buy Order")  # Remove the emoji
+        self.btn_buy_order.setIcon(buy_icon)
+        self.btn_buy_order.setIconSize(QSize(24, 24))
+        self.btn_buy_order.setStyleSheet("""
+            QPushButton {
+                background-color: rgba(16, 185, 129, 0.2);
+                color: #10B981;
+                border: none;
+                border-radius: 10px;
+                padding: 15px 20px;
+                padding-left: 15px;  /* Adjust padding for icon */
+                font-size: 16px;
+                font-weight: 600;
+                text-align: center;
+            }
+            QPushButton:hover {
+                background-color: rgba(16, 185, 129, 0.3);
+            }
+        """)
         self.btn_buy_order.clicked.connect(self.presenter.open_buy_order)
         
-        self.btn_sell_order = QPushButton("📉 Sell Order")
+        svg_data_sell = """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F77070" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trending-down h-5 w-5 text-red-400 mr-2"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"></polyline><polyline points="16 17 22 17 22 11"></polyline></svg>"""
+
+        # Create icon from SVG data for sell button
+        sell_icon = QIcon()
+        renderer_sell = QSvgRenderer(QByteArray(svg_data_sell.encode()))
+        pixmap_sell = QPixmap(24, 24)
+        pixmap_sell.fill(Qt.transparent)
+        painter_sell = QPainter(pixmap_sell)
+        renderer_sell.render(painter_sell)
+        painter_sell.end()
+        sell_icon.addPixmap(pixmap_sell)
+
+        self.btn_sell_order = QPushButton("Sell Order")
+        self.btn_sell_order.setIcon(sell_icon)
+        self.btn_sell_order.setIconSize(QSize(24, 24))
+        self.btn_sell_order.setStyleSheet("""
+        QPushButton {
+            background-color: rgba(239, 68, 68, 0.2);
+            color: #FCA5A5;
+            border: none;
+            border-radius: 10px;
+            padding: 15px 20px;
+            padding-left: 15px;  /* Adjust padding for icon */
+            font-size: 16px;
+            font-weight: 600;
+            text-align: center;
+        }
+        QPushButton:hover {
+            background-color: rgba(239, 68, 68, 0.3);
+        }
+    """)
         self.btn_sell_order.clicked.connect(self.presenter.open_sell_order)
         
-        self.btn_ai_advisor = QPushButton("🤖 AI Advisor")
-        self.btn_ai_advisor.setObjectName("gold-button")
+        svg_data_ai = """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-brain h-5 w-5 text-blue-400 mr-2"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"></path><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"></path><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"></path><path d="M17.599 6.5a3 3 0 0 0 .399-1.375"></path><path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"></path><path d="M3.477 10.896a4 4 0 0 1 .585-.396"></path><path d="M19.938 10.5a4 4 0 0 1 .585.396"></path><path d="M6 18a4 4 0 0 1-1.967-.516"></path><path d="M19.967 17.484A4 4 0 0 1 18 18"></path></svg>"""
+
+        # Create icon from SVG data for AI Advisor button
+        ai_icon = QIcon()
+        renderer_ai = QSvgRenderer(QByteArray(svg_data_ai.encode()))
+        pixmap_ai = QPixmap(24, 24)
+        pixmap_ai.fill(Qt.transparent)
+        painter_ai = QPainter(pixmap_ai)
+        renderer_ai.render(painter_ai)
+        painter_ai.end()
+        ai_icon.addPixmap(pixmap_ai)
+
+        self.btn_ai_advisor = QPushButton("AI Advisor")
+        self.btn_ai_advisor.setIcon(ai_icon)
+        self.btn_ai_advisor.setIconSize(QSize(24, 24))
+        self.btn_ai_advisor.setStyleSheet("""
+        QPushButton {
+            background-color: rgba(59, 130, 246, 0.2);
+            color: #93C5FD;
+            border: none;
+            border-radius: 10px;
+            padding: 15px 20px;
+            padding-left: 15px;  /* Adjust padding for icon */
+            font-size: 16px;
+            font-weight: 600;
+            text-align: center;
+        }
+        QPushButton:hover {
+            background-color: rgba(59, 130, 246, 0.3);
+        }
+    """)
         self.btn_ai_advisor.clicked.connect(self.presenter.open_ai_advisor)
-        
-        self.btn_trade_history = QPushButton("📊 Trade History")
+        svg_data_history = """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#CBA2F3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-history h-5 w-5 text-purple-400 mr-2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M12 7v5l4 2"></path></svg>"""
+
+        # Create icon from SVG data for Trade History button
+        history_icon = QIcon()
+        renderer_history = QSvgRenderer(QByteArray(svg_data_history.encode()))
+        pixmap_history = QPixmap(24, 24)
+        pixmap_history.fill(Qt.transparent)
+        painter_history = QPainter(pixmap_history)
+        renderer_history.render(painter_history)
+        painter_history.end()
+        history_icon.addPixmap(pixmap_history)
+
+        self.btn_trade_history = QPushButton("Trade History")
+        self.btn_trade_history.setIcon(history_icon)
+        self.btn_trade_history.setIconSize(QSize(24, 24))
+
+        self.btn_trade_history.setStyleSheet("""
+    QPushButton {
+        background-color: rgba(168, 85, 247, 0.2);
+        color: #C4B5FD;
+        border: none;
+        border-radius: 10px;
+        padding: 15px 20px;
+        padding-left: 15px;  /* Adjust padding for icon */
+        font-size: 16px;
+        font-weight: 600;
+        text-align: center;
+    }
+    QPushButton:hover {
+        background-color: rgba(168, 85, 247, 0.3);
+    }
+""")
         self.btn_trade_history.clicked.connect(self.presenter.open_trade_history)
         
         # Add buttons to layout
@@ -239,11 +646,11 @@ class MainView(QMainWindow):
         portfolio_card.setObjectName("card")
         portfolio_card.setStyleSheet("QFrame#card { padding: 0; }")
         
-        # Gold-tinted glow shadow effect
+        # Shadow effect
         portfolio_shadow = QGraphicsDropShadowEffect(portfolio_card)
-        portfolio_shadow.setBlurRadius(15)
-        portfolio_shadow.setColor(QColor(255, 215, 0, 20))
-        portfolio_shadow.setOffset(0, 3)
+        portfolio_shadow.setBlurRadius(8)
+        portfolio_shadow.setColor(QColor(0, 0, 0, 20))
+        portfolio_shadow.setOffset(0, 2)
         portfolio_card.setGraphicsEffect(portfolio_shadow)
         
         # Layout for portfolio card
@@ -257,9 +664,8 @@ class MainView(QMainWindow):
         
         # Portfolio tab
         portfolio_tab = QWidget()
-        portfolio_tab.setStyleSheet("background-color: #1E3A5F;")
         tab_layout = QVBoxLayout(portfolio_tab)
-        tab_layout.setContentsMargins(20, 20, 20, 20)
+        tab_layout.setContentsMargins(15, 15, 15, 15)
         
         # Portfolio summary
         summary_frame = QFrame()
@@ -270,7 +676,7 @@ class MainView(QMainWindow):
         # Portfolio value
         value_layout = QVBoxLayout()
         value_label = QLabel("Total Portfolio Value")
-        value_label.setStyleSheet("color: #C0C0C0; font-size: 13px;")
+        value_label.setStyleSheet("color: #666666; font-size: 13px;")
         value_amount = QLabel("$157,384.25")
         value_amount.setObjectName("large-value")
         value_layout.addWidget(value_label)
@@ -279,16 +685,16 @@ class MainView(QMainWindow):
         # Daily change
         change_layout = QVBoxLayout()
         change_label = QLabel("Today's Change")
-        change_label.setStyleSheet("color: #C0C0C0; font-size: 13px;")
+        change_label.setStyleSheet("color: #666666; font-size: 13px;")
         change_amount = QLabel("+$2,157.83 (+1.39%)")
-        change_amount.setStyleSheet("color: #66CFA6; font-size: 16px; font-weight: bold;")
+        change_amount.setStyleSheet("color: #34C759; font-size: 16px; font-weight: bold;")
         change_layout.addWidget(change_label)
         change_layout.addWidget(change_amount)
         
         # Cash balance
         cash_layout = QVBoxLayout()
         cash_label = QLabel("Cash Balance")
-        cash_label.setStyleSheet("color: #C0C0C0; font-size: 13px;")
+        cash_label.setStyleSheet("color: #666666; font-size: 13px;")
         cash_amount = QLabel("$24,325.00")
         cash_amount.setObjectName("value-text")
         cash_layout.addWidget(cash_label)
@@ -300,42 +706,84 @@ class MainView(QMainWindow):
         
         tab_layout.addWidget(summary_frame)
         
-        # Create portfolio table
+        # Create portfolio table with enhanced styling
         self.stock_table = QTableWidget()
         self.stock_table.setColumnCount(5)
         self.stock_table.setHorizontalHeaderLabels(["Stock", "Current Price", "Daily Change", "Quantity", "Portfolio Value"])
+        self.stock_table.setMinimumHeight(250)
+        
+        # Enhanced table styling
+        self.stock_table.setStyleSheet("""
+            QTableWidget {
+                background-color: white;
+                alternate-background-color: #f8f9fa;
+                gridline-color: #e4e6eb;
+                border: 1px solid #e4e6eb;
+                border-radius: 6px;
+                font-family: 'Segoe UI', Arial, sans-serif;
+                font-size: 13px;
+            }
+            
+            QTableWidget::item {
+                padding: 6px;
+                border-bottom: 1px solid #e4e6eb;
+            }
+            
+            QTableWidget::item:selected {
+                background-color: #e7f3ff;
+                color: #0066cc;
+            }
+            
+            QHeaderView::section {
+                background-color: #f1f2f6;
+                color: #555;
+                font-weight: bold;
+                padding: 8px;
+                border: none;
+                border-bottom: 2px solid #e4e6eb;
+                font-size: 13px;
+            }
+            
+            QHeaderView::section:horizontal {
+                text-align: center;
+            }
+            
+            QScrollBar:vertical {
+                border: none;
+                background-color: #f0f0f0;
+                width: 10px;
+                margin: 0px;
+            }
+            
+            QScrollBar::handle:vertical {
+                background-color: #c0c0c0;
+                min-height: 20px;
+                border-radius: 5px;
+            }
+            
+            QScrollBar::handle:vertical:hover {
+                background-color: #a0a0a0;
+            }
+        """)
+        
         self.stock_table.setAlternatingRowColors(True)
         self.stock_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.stock_table.verticalHeader().setVisible(False)
-        self.stock_table.setMinimumHeight(250)
+        self.stock_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.stock_table.setEditTriggers(QTableWidget.NoEditTriggers)
         
-        # Add subtle glow effect to table with gold tint
-        table_shadow = QGraphicsDropShadowEffect(self.stock_table)
-        table_shadow.setBlurRadius(10)
-        table_shadow.setColor(QColor(255, 215, 0, 20))
-        table_shadow.setOffset(0, 1)
-        self.stock_table.setGraphicsEffect(table_shadow)
+        # Remove shadow effect for a cleaner look
+        # (The CSS border and styling already provides a nice visual separation)
         
         tab_layout.addWidget(self.stock_table)
         
-        # Create additional tabs (placeholders)
-        performance_tab = QWidget()
-        performance_tab.setStyleSheet("background-color: #1E3A5F;")
-        
-        watchlist_tab = QWidget()
-        watchlist_tab.setStyleSheet("background-color: #1E3A5F;")
-        
-        history_tab = QWidget()
-        history_tab.setStyleSheet("background-color: #1E3A5F;")
-        
         # Add tabs to tab widget
         self.tabs.addTab(portfolio_tab, "Portfolio")
-        self.tabs.addTab(performance_tab, "Performance")
-        self.tabs.addTab(watchlist_tab, "Watchlist")
-        self.tabs.addTab(history_tab, "History")
         
         portfolio_layout.addWidget(self.tabs)
         self.main_layout.addWidget(portfolio_card)
+
+
 
     def create_market_overview(self):
         """Create market overview section"""
@@ -350,8 +798,8 @@ class MainView(QMainWindow):
         
         # Layout for market cards
         market_layout = QHBoxLayout(market_container)
-        market_layout.setContentsMargins(20, 20, 20, 20)
-        market_layout.setSpacing(20)
+        market_layout.setContentsMargins(15, 15, 15, 15)
+        market_layout.setSpacing(15)
         
         # Create market index cards
         self.create_market_card(market_layout, "S&P 500", "4,827.35", "+1.2%", True)
@@ -359,11 +807,11 @@ class MainView(QMainWindow):
         self.create_market_card(market_layout, "DOW", "38,256.98", "+0.5%", True)
         self.create_market_card(market_layout, "Bitcoin", "$41,235.78", "-2.3%", False)
         
-        # Add subtle gold glow
+        # Add subtle shadow
         market_shadow = QGraphicsDropShadowEffect(market_container)
-        market_shadow.setBlurRadius(15)
-        market_shadow.setColor(QColor(255, 215, 0, 20))
-        market_shadow.setOffset(0, 3)
+        market_shadow.setBlurRadius(8)
+        market_shadow.setColor(QColor(0, 0, 0, 20))
+        market_shadow.setOffset(0, 2)
         market_container.setGraphicsEffect(market_shadow)
         
         self.main_layout.addWidget(market_container)
@@ -375,11 +823,11 @@ class MainView(QMainWindow):
         
         # Layout for card
         card_layout = QVBoxLayout(card)
-        card_layout.setSpacing(8)
+        card_layout.setSpacing(5)
         
         # Title
         title_label = QLabel(title)
-        title_label.setObjectName("gold-accent-text")
+        title_label.setObjectName("accent-text")
         
         # Value
         value_label = QLabel(value)
@@ -388,20 +836,20 @@ class MainView(QMainWindow):
         # Change
         change_label = QLabel(change)
         if is_positive:
-            change_label.setStyleSheet("color: #66CFA6; font-size: 14px;")
+            change_label.setStyleSheet("color: #34C759; font-size: 14px;")
         else:
-            change_label.setStyleSheet("color: #F87171; font-size: 14px;")
+            change_label.setStyleSheet("color: #FF3B30; font-size: 14px;")
         
         card_layout.addWidget(title_label)
         card_layout.addWidget(value_label)
         card_layout.addWidget(change_label)
         card_layout.addStretch()
         
-        # Add subtle inner glow with gold tint
+        # Add subtle shadow
         card_shadow = QGraphicsDropShadowEffect(card)
-        card_shadow.setBlurRadius(8)
-        card_shadow.setColor(QColor(255, 215, 0, 20))
-        card_shadow.setOffset(0, 0)
+        card_shadow.setBlurRadius(4)
+        card_shadow.setColor(QColor(0, 0, 0, 15))
+        card_shadow.setOffset(0, 1)
         card.setGraphicsEffect(card_shadow)
         
         parent_layout.addWidget(card)
@@ -436,10 +884,10 @@ class MainView(QMainWindow):
                 # Format with appropriate color
                 if total_unrealized_pl >= 0:
                     widget.setText(f"+${total_unrealized_pl:,.2f}")
-                    widget.setStyleSheet("color: #66CFA6; font-size: 16px; font-weight: bold;")
+                    widget.setStyleSheet("color: #34C759; font-size: 16px; font-weight: bold;")
                 else:
                     widget.setText(f"-${abs(total_unrealized_pl):,.2f}")
-                    widget.setStyleSheet("color: #F87171; font-size: 16px; font-weight: bold;")
+                    widget.setStyleSheet("color: #FF3B30; font-size: 16px; font-weight: bold;")
                 break
         
         # Update the label text above the P/L value
@@ -462,33 +910,58 @@ class MainView(QMainWindow):
     
     def update_portfolio_table(self, portfolio_data):
         """Update portfolio table with enhanced data"""
-        headers = ["Symbol", "Company", "Qty", "Avg Buy Price", "Current Price", "Daily Change", "Market Value", "Unrealized P/L", "Allocation %"]
+        headers = ["Symbol", "Qty", "Avg Buy Price", "Current Price","Market Value", "Unrealized P/L", "Allocation %"]
         self.stock_table.setColumnCount(len(headers))
         self.stock_table.setHorizontalHeaderLabels(headers)
         self.stock_table.setRowCount(len(portfolio_data))
         for row, data in enumerate(portfolio_data):
             # נעבור על כל עמודה לפי סדר הנתונים
             symbol_item = QTableWidgetItem(data["symbol"])
-            company_item = QTableWidgetItem(data["company_name"] if data["company_name"] else "-")
             qty_item = QTableWidgetItem(str(data["quantity"]))
             avg_price_item = QTableWidgetItem(f"${data['avg_buy_price']:.2f}")
             current_price_item = QTableWidgetItem(f"${data['current_price']:.2f}")
             daily_change_val = data["daily_change"] if data["daily_change"] is not None else "-"
-            daily_change_item = QTableWidgetItem(str(daily_change_val))
             market_value_item = QTableWidgetItem(f"${data['market_value']:.2f}")
             unrealized_pl_item = QTableWidgetItem(f"${data['unrealized_pl']:.2f}")
             allocation_item = QTableWidgetItem(f"{data['allocation']:.1f}%")
             
             # ניתן להוסיף עיצוב: למשל, אם unrealized_pl חיובי להציג בירוק, ואם שלילי באדום
             if data["unrealized_pl"] >= 0:
-                unrealized_pl_item.setForeground(QColor("#66CFA6"))
+                unrealized_pl_item.setForeground(QColor("#34C759"))
             else:
-                unrealized_pl_item.setForeground(QColor("#F87171"))
-            
-            # נניח daily_change_item יעוצב בדומה, אם ערך מספרי
-            # (ניתן להוסיף לוגיקה נוספת כאן)
-            
-            items = [symbol_item, company_item, qty_item, avg_price_item, current_price_item, daily_change_item, market_value_item, unrealized_pl_item, allocation_item]
+                unrealized_pl_item.setForeground(QColor("#FF3B30"))
+
+            items = [symbol_item,qty_item, avg_price_item, current_price_item, market_value_item, unrealized_pl_item, allocation_item]
             for col, item in enumerate(items):
                 item.setTextAlignment(Qt.AlignCenter)
                 self.stock_table.setItem(row, col, item)
+
+    def open_dashboard(self):
+        print("Opening Dashboard")
+
+    def open_portfolio(self):
+        print("Opening Portfolio")
+
+    def open_market_overview(self):
+        print("Opening Market Overview")
+
+    def open_reports(self):
+        print("Opening Reports & Analysis")
+
+    def open_account_settings(self):
+        print("Opening Account Settings")
+
+    def open_performance(self):
+        print("Opening Performance")
+
+    def open_risk_analysis(self):
+        print("Opening Risk Analysis")
+
+    def open_documentation(self):
+        print("Opening Documentation")
+
+    def open_support(self):
+        print("Opening Support")
+
+    def open_about(self):
+        print("Opening About")

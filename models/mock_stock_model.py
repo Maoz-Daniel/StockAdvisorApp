@@ -8,6 +8,11 @@ class MockStockModel:
         self.api_base_url = "http://localhost:5124/api"
 
 
+        self.users = {
+        "maoz": "3242",
+        "1": "1",
+        "noam": "123"
+    }
         self.portfolio = {
     "AAPL": {"price": 182.30, "quantity": 35},
     "GOOGL": {"price": 2850.00, "quantity": 5},
@@ -185,14 +190,22 @@ class MockStockModel:
         print(f"Returning username: {self.username}")
         return self.username
 
-    def get_portfolio_total_value(self):
-        """Return the total value and P/L that was calculated in get_portfolio_data"""
-        if not hasattr(self, 'total_portfolio_value') or not hasattr(self, 'total_unrealized_pl'):
-            # If totals aren't available, calculate them
-            self.get_portfolio_data()
+    def get_portfolio_total_value(self, portfolio_data=None):
+        """Calculate the total value of the portfolio and total unrealized P/L"""
+        print("Calculating total portfolio value")
         
-        return self.total_portfolio_value, self.total_unrealized_pl
+        # Use provided data or get it if not provided
+        portfolio_items = portfolio_data if portfolio_data is not None else self.get_portfolio_data()
         
+        # Sum up the market values and unrealized P/L
+        total_value = sum(item["market_value"] for item in portfolio_items)
+        total_unrealized_pl = sum(item["unrealized_pl"] for item in portfolio_items)
+        
+        print(f"Total portfolio value calculated: ${total_value:.2f}")
+        print(f"Total unrealized P/L calculated: ${total_unrealized_pl:.2f}")
+        
+        return total_value, total_unrealized_pl
+    
     def get_portfolio_data(self):
         print("Getting portfolio data from backend")
         # Get user_id (default to 1 if not available)
@@ -307,21 +320,61 @@ class MockStockModel:
 
     def sell_stock(self, stock, quantity, price):
         print(f"Selling stock: {stock}, quantity: {quantity}, price: {price}")
-        if stock in self.portfolio and self.portfolio[stock]["quantity"] >= quantity:
-            self.portfolio[stock]["quantity"] -= quantity
-            self.portfolio[stock]["price"] = price
-            if self.portfolio[stock]["quantity"] == 0:
-                del self.portfolio[stock]
-            self.trade_history.append({
-                "date": datetime.now(),
-                "stock": stock,
-                "action": "Sell",
-                "quantity": quantity,
-                "price": price
-            })
-            return True
-        print("Sell stock failed: insufficient quantity or stock not in portfolio")
-        return False
+        
+        # 1. Record transaction via API
+        transaction_data = {
+            "UserId": getattr(self, "user_id", 1),
+            "Symbol": stock,
+            "TransactionType": "SELL",
+            "Quantity": float(quantity),
+            "Price": float(price)
+        }
+        
+        try:
+            response = requests.post(f"{self.api_base_url}/Transaction", json=transaction_data)
+            if response.status_code == 200 or response.status_code == 201:
+                print("Transaction recorded in the database successfully.")
+                
+                # 2. Update the local portfolio (ONLY after successful API call)
+                portfolio_updated = False
+                
+                # Check if we're using dictionary-based portfolio (with stock symbols as keys)
+                if isinstance(self.portfolio, dict):
+                    if stock in self.portfolio and self.portfolio[stock]["quantity"] >= quantity:
+                        self.portfolio[stock]["quantity"] -= quantity
+                        # Remove stock from portfolio if quantity becomes zero
+                        if self.portfolio[stock]["quantity"] == 0:
+                            del self.portfolio[stock]
+                        portfolio_updated = True
+                
+                # Check if we're using list-based portfolio
+                elif isinstance(self.portfolio, list):
+                    for item in self.portfolio:
+                        if item.get('symbol') == stock and item.get('quantity', 0) >= quantity:
+                            item['quantity'] -= quantity
+                            if item['quantity'] == 0:
+                                self.portfolio.remove(item)
+                            portfolio_updated = True
+                            break
+                
+                # Even if local update failed, still add to trade history since API call succeeded
+                self.trade_history.append({
+                    "date": datetime.now(),
+                    "stock": stock,
+                    "action": "Sell",
+                    "quantity": quantity,
+                    "price": price
+                })
+                
+                # Return success based on API call, not local portfolio update
+                # This way UI shows success since database was updated
+                return True
+            else:
+                print(f"Failed to record transaction: {response.status_code} - {response.text}")
+                return False
+        except Exception as e:
+            print(f"Error calling Transaction API: {str(e)}")
+            return False
 
     def get_trade_history(self, transactions, start_date=None, end_date=None, stocks=[], actions=[]):
         """Filter the provided trade transactions based on dates, stocks, and actions."""
