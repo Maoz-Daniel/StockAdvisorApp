@@ -488,3 +488,48 @@ class MockStockModel:
         except Exception as e:
             print(f"Error fetching user transactions: {str(e)}")
             return []
+
+    def get_company_description(self, symbol):
+        """Get company description for a stock symbol"""
+        try:
+            response = requests.get(f"{self.api_base_url}/Stock/{symbol}/description")
+            if response.status_code == 200:
+                description = response.text.strip('"')  # Remove quotes if the API returns JSON string
+                print(f"Got description for {symbol}: {description[:50]}...")
+                return description
+            else:
+                print(f"API error for {symbol} description: {response.status_code} - {response.text}")
+                return "No company description available."
+        except Exception as e:
+            print(f"Error getting company description for {symbol}: {str(e)}")
+            return "No company description available."
+
+    def get_company_profile(self, symbol):
+        """Get company profile information for a stock symbol"""
+        try:
+            response = requests.get(f"{self.api_base_url}/Stock/profile/{symbol}")
+            if response.status_code == 200:
+                profile = response.json()
+                print("json is:", profile)
+                print(f"Got profile for {symbol}: {profile.get('name', 'N/A')}")
+                return profile
+            else:
+                print(f"API error for {symbol} profile: {response.status_code} - {response.text}")
+                return {
+                    "name": symbol,
+                    "industry": "Unknown",
+                    "logoUrl": "",
+                    "exchange": "Unknown",
+                    "webUrl": "",
+                    "country": "Unknown"
+                }
+        except Exception as e:
+            print(f"Error getting company profile for {symbol}: {str(e)}")
+            return {
+                "name": symbol,
+                "industry": "Unknown",
+                "logoUrl": "",
+                "exchange": "Unknown",
+                "webUrl": "",
+                "country": "Unknown"
+            }

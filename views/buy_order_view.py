@@ -5,16 +5,21 @@ from PySide6.QtWidgets import (
     QCompleter, QProgressBar, QTextEdit, QDialogButtonBox, QSpacerItem, QGridLayout, QTabWidget, QTableWidget,
     QTableWidgetItem, QHeaderView, QAbstractItemView, QDateEdit, QTimeEdit, QCheckBox, QProgressDialog, QGroupBox,QMenu
 )
+import requests
+from io import BytesIO
+
 from PySide6.QtCore import Qt, QSize, QDate, QMargins, QDateTime, QTimer, QByteArray, QUrl, QEvent
 from PySide6.QtGui import QColor, QFont, QPainter, QPen, QIcon, QPixmap, QKeySequence
 from PySide6.QtCharts import QChart, QChartView, QLineSeries, QValueAxis, QDateTimeAxis
 from PySide6.QtSvg import QSvgRenderer
+from PySide6.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
 
 from presenters.buy_order_presenter import BuyOrderPresenter
 # Import the FaceID6 theme
 from assets.theme import FaceID6Theme
 from assets.theme import LuxuryTheme
 from assets.theme import DarkLuxuryTheme
+
 class OrderPreviewDialog(QDialog):
     """Dialog to preview order details before confirming"""
     def __init__(self, preview_info, parent=None):
@@ -22,34 +27,37 @@ class OrderPreviewDialog(QDialog):
         self.setWindowTitle("Order Preview")
         self.resize(400, 300)
         
-        # Apply iOS-inspired light theme styling
-        self.setStyleSheet("""
-            QDialog {
-                background-color: #F2F2F7;
-                color: #000000;
+        # Get theme colors
+        theme = FaceID6Theme()
+        
+        # Apply iOS-inspired light theme styling using theme variables
+        self.setStyleSheet(f"""
+            QDialog {{
+                background-color: {theme.BACKGROUND_COLOR};
+                color: {theme.TEXT_PRIMARY};
                 font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
-            }
-            QLabel {
-                color: #000000;
+            }}
+            QLabel {{
+                color: {theme.TEXT_PRIMARY};
                 font-size: 14px;
-            }
-            QFrame {
-                background-color: #FFFFFF;
+            }}
+            QFrame {{
+                background-color: {theme.CARD_COLOR};
                 border-radius: 10px;
                 border: 1px solid #E5E5EA;
-            }
-            QPushButton {
-                background-color: #F2F2F7;
-                color: #007AFF;
+            }}
+            QPushButton {{
+                background-color: {theme.BACKGROUND_COLOR};
+                color: {theme.ACCENT_COLOR};
                 border: 1px solid #E5E5EA;
                 border-radius: 10px;
                 padding: 12px 20px;
                 font-weight: 500;
                 font-size: 15px;
-            }
-            QPushButton:hover {
+            }}
+            QPushButton:hover {{
                 background-color: #E5E5EA;
-            }
+            }}
         """)
         
         layout = QVBoxLayout(self)
@@ -63,8 +71,8 @@ class OrderPreviewDialog(QDialog):
         # Order details
         details = QFrame()
         details.setObjectName("order-summary")
-        details.setStyleSheet("""
-            background-color: #F2F2F7;
+        details.setStyleSheet(f"""
+            background-color: {theme.BACKGROUND_COLOR};
             border-radius: 10px;
             border: 1px solid #E5E5EA;
             padding: 15px;
@@ -76,7 +84,8 @@ class OrderPreviewDialog(QDialog):
         price_label = QLabel(f"Current Price per share: ${preview_info['price_per_share']:.2f}")
         total_label = QLabel(f"Total Cost: ${preview_info['estimated_total']:.2f}")
         
-        total_label.setStyleSheet("font-weight: bold; font-size: 16px; color: #007AFF;")
+        # Use theme accent color
+        total_label.setStyleSheet(f"font-weight: bold; font-size: 16px; color: {theme.ACCENT_COLOR};")
         
         details_layout.addWidget(stock_label)
         details_layout.addWidget(quantity_label)
@@ -89,8 +98,10 @@ class OrderPreviewDialog(QDialog):
         buttons_layout = QHBoxLayout()
         confirm_button = QPushButton("Confirm Order")
         confirm_button.setObjectName("highlight-button")
-        confirm_button.setStyleSheet("""
-            background-color: #007AFF;
+        
+        # Use theme accent color for the button
+        confirm_button.setStyleSheet(f"""
+            background-color: {theme.ACCENT_COLOR};
             color: white;
             border: none;
         """)
@@ -105,17 +116,22 @@ class OrderPreviewDialog(QDialog):
 
 
 class BuyOrderWindow(QMainWindow):
+    #-----------------------------------------------Initialization and UI Construction----------------------------------------
+
     def __init__(self, model, parent=None):
         super().__init__(parent)
         self.model = model
         self.username = model.get_username()
         self.setWindowTitle("Buy Stock - SmartInvest Pro")
         self.resize(900, 800)
+        
+        # Reference to theme
+        self.theme = FaceID6Theme()
+        
+        self.showFullScreen()
 
         # Apply FaceID6 theme styling
-        self.setStyleSheet(FaceID6Theme.STYLE_SHEET)
-
-        self.create_header_bar()
+        self.setStyleSheet(self.theme.STYLE_SHEET)
 
         # Main structure with scrolling support
         central_widget = QWidget()
@@ -161,31 +177,38 @@ class BuyOrderWindow(QMainWindow):
         header_layout.addWidget(self.subtitle_label)
         self.main_layout.addWidget(self.header_frame)
 
-        # Search section
+        # Main content with search on right and company info on left
+        main_content_layout = QHBoxLayout()
+        
+        # Left placeholder for company info (will be filled when stock is selected)
+        self.company_info_placeholder = QWidget()
+        self.company_info_placeholder.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        
+        # Right side - Search section
         search_section = QFrame()
         search_section.setObjectName("card")
-        search_section.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        search_section.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        search_section.setMaximumWidth(350)
         search_layout = QVBoxLayout(search_section)
         search_layout.setContentsMargins(20, 20, 20, 20)
         
         search_title = QLabel("Search Stock")
         search_title.setObjectName("section-title")
         
-        # Search input with button in horizontal layout
-        search_input_layout = QHBoxLayout()
+        # Search input with button in vertical layout
+        search_input_layout = QVBoxLayout()
         
         self.stock_search = QLineEdit()
         self.stock_search.setObjectName("stock-search")
-        self.stock_search.setPlaceholderText("Enter company name (e.g., Apple, Microsoft, Google)...")
+        self.stock_search.setPlaceholderText("Enter company name (e.g., Apple)...")
         
         self.search_button = QPushButton("Search")
         self.search_button.setObjectName("highlight-button")
-        self.search_button.setMinimumWidth(100)
         self.search_button.setCursor(Qt.PointingHandCursor)
         self.search_button.clicked.connect(self.search_stock)
         
-        search_input_layout.addWidget(self.stock_search, 5)
-        search_input_layout.addWidget(self.search_button, 1)
+        search_input_layout.addWidget(self.stock_search)
+        search_input_layout.addWidget(self.search_button)
         
         # Progress bar (initially hidden)
         self.progress_bar = QProgressBar()
@@ -195,12 +218,12 @@ class BuyOrderWindow(QMainWindow):
         
         # Error message label (initially hidden)
         self.error_message = QLabel("")
-        self.error_message.setStyleSheet("color: #FF3B30; font-size: 14px; font-weight: bold; padding: 5px;")
+        self.error_message.setObjectName("error-message")
         self.error_message.setVisible(False)
         
         # Success message for stock found
         self.success_message = QLabel("")
-        self.success_message.setStyleSheet("color: #34C759; font-size: 14px; font-weight: bold; padding: 5px;")
+        self.success_message.setObjectName("success-message")
         self.success_message.setVisible(False)
         
         search_layout.addWidget(search_title)
@@ -209,7 +232,12 @@ class BuyOrderWindow(QMainWindow):
         search_layout.addWidget(self.error_message)
         search_layout.addWidget(self.success_message)
         
-        self.main_layout.addWidget(search_section)
+        # Add to main content layout
+        main_content_layout.addWidget(self.company_info_placeholder, 3)  # 3:1 ratio for left:right
+        main_content_layout.addWidget(search_section, 1)
+        
+        # Add main content layout to main layout
+        self.main_layout.addLayout(main_content_layout)
         
         # Chart section
         chart_section = QFrame()
@@ -229,7 +257,9 @@ class BuyOrderWindow(QMainWindow):
         # Add shadow effect to chart
         chart_shadow = QGraphicsDropShadowEffect(self.chart_view)
         chart_shadow.setBlurRadius(15)
-        chart_shadow.setColor(QColor(0, 122, 255, 30))  # iOS Blue tint
+        accent_color = QColor(self.theme.ACCENT_COLOR)
+        accent_color.setAlpha(30)
+        chart_shadow.setColor(accent_color)   
         chart_shadow.setOffset(0, 2)
         self.chart_view.setGraphicsEffect(chart_shadow)
         
@@ -238,14 +268,14 @@ class BuyOrderWindow(QMainWindow):
         empty_chart.setTitle("No Stock Selected")
         empty_chart.setBackgroundVisible(False)
         empty_chart.setTitleFont(QFont("SF Pro Display", 12, QFont.Bold))
-        empty_chart.setTitleBrush(QColor("#007AFF"))
+        empty_chart.setTitleBrush(QColor(self.theme.ACCENT_COLOR))
         self.chart_view.setChart(empty_chart)
         
         chart_layout.addWidget(chart_title)
         chart_layout.addWidget(self.chart_view)
         self.current_price_label = QLabel("Current Price: $0.00")
         self.current_price_label.setAlignment(Qt.AlignCenter)
-        self.current_price_label.setStyleSheet("color: #007AFF; font-size: 16px; font-weight: bold;")
+        self.current_price_label.setObjectName("current-price-label")
         chart_layout.addWidget(self.current_price_label)
         
         self.main_layout.addWidget(chart_section)
@@ -283,7 +313,7 @@ class BuyOrderWindow(QMainWindow):
         form_layout.addWidget(form_title)
         
         self.stock_display = QLabel("Selected Stock: None")
-        self.stock_display.setStyleSheet("font-size: 16px; font-weight: bold; color: #007AFF;")
+        self.stock_display.setObjectName("stock-display")
         
         self.quantity_input = QSpinBox()
         self.quantity_input.setRange(1, 1000)
@@ -291,7 +321,7 @@ class BuyOrderWindow(QMainWindow):
         
         # Stock price display (read-only)
         self.price_display = QLabel("Current Price: $0.00")
-        self.price_display.setStyleSheet("color: #007AFF;")
+        self.price_display.setObjectName("price-display")
         
         # Total cost display
         total_cost_layout = QHBoxLayout()
@@ -369,14 +399,6 @@ class BuyOrderWindow(QMainWindow):
         self.loading_dots = 0
         self.loading_timer = QTimer(self)
         self.loading_timer.timeout.connect(self.update_loading_message)
-    
-
-    def resizeEvent(self, event):
-        """Handle window resize"""
-        if hasattr(self, 'header_frame'):
-            self.header_frame.setGeometry(0, 0, self.width(), 60)
-        # Make sure to call the parent class implementation
-        super().resizeEvent(event)
 
     def create_header_bar(self):
         """Create a visible header bar with logo and navigation buttons"""
@@ -516,15 +538,25 @@ class BuyOrderWindow(QMainWindow):
         header_layout.addStretch()
         header_layout.addWidget(account_btn)
         
-        # Overall frame styling - match the first example
-        header_frame.setStyleSheet("""
-            QFrame#header-bar {
-                background-color: #1F2937;
-                color: white;
-            }
-        """)
+        # Overall frame styling
+        header_frame.setStyleSheet(f"""
+        QFrame#header-bar {{
+            background-color: {self.theme.PRIMARY_COLOR};
+            color: white;
+        }}
+    """)
         
         return header_frame
+    
+    #-----------------------------------------------UI Update and Messaging Functions----------------------------------------
+
+    def resizeEvent(self, event):
+        """Handle window resize"""
+        if hasattr(self, 'header_frame'):
+            self.header_frame.setGeometry(0, 0, self.width(), 60)
+        # Make sure to call the parent class implementation
+        super().resizeEvent(event)
+
     def update_user_info(self, username):
         """Update username in the UI"""
         self.subtitle_label.setText(f"Search and buy stocks - {username}")
@@ -537,6 +569,80 @@ class BuyOrderWindow(QMainWindow):
         completer = QCompleter(stocks)
         completer.setCaseSensitivity(Qt.CaseInsensitive)
         self.stock_search.setCompleter(completer)
+
+    def update_total_cost(self):
+        """Update the total cost based on quantity"""
+        try:
+            quantity = self.quantity_input.value()
+            price_text = self.price_display.text().replace("Current Price: $", "")
+            price = float(price_text) if price_text and price_text != "0.00" else 0
+            
+            total = quantity * price
+            self.total_cost_value.setText(f"${total:.2f}")
+        except (ValueError, AttributeError):
+            self.total_cost_value.setText("$0.00")
+
+    def set_loading_state(self, is_loading, message=None):
+            """Set the UI to loading state when waiting for API response"""
+            print(f"Setting loading state: {is_loading}")
+            
+            if is_loading:
+                # Show loading UI
+                self.progress_bar.setVisible(True)
+                self.progress_bar.setRange(0, 0)  # Indeterminate progress
+                self.search_button.setEnabled(False)
+                self.stock_search.setEnabled(False)
+                self.stock_search.setReadOnly(True)  # Explicitly set read-only
+                
+                # Start the loading animation
+                if message:
+                    self.base_loading_message = message
+                    self.status_bar.showMessage(message)
+                self.loading_dots = 0
+                self.loading_timer.start(500)  # Update every 500ms
+            else:
+                # Hide loading UI and ensure controls are enabled
+                self.progress_bar.setVisible(False)
+                self.search_button.setEnabled(True)
+                # Correct way to clear focus
+                self.search_button.clearFocus()  # Use clearFocus instead of setFocus(False)
+                self.stock_search.setEnabled(True)
+                self.stock_search.setReadOnly(False)  # Explicitly set not read-only
+                self.stock_search.clearFocus()  # Clear focus from the search box
+                self.loading_timer.stop()
+                
+                # Process events to ensure UI updates
+                QApplication.processEvents()
+                
+                # Reset the status bar if it was showing loading dots
+                if hasattr(self, 'base_loading_message'):
+                    self.status_bar.showMessage("Ready")
+    
+    def update_loading_message(self):
+            """Update loading animation in status bar"""
+            self.loading_dots = (self.loading_dots + 1) % 4
+            dots = "." * self.loading_dots
+            self.status_bar.showMessage(f"{self.base_loading_message}{dots}")
+
+    def show_error(self, message):
+            """Display error message below search box"""
+            self.error_message.setText(message)
+            self.error_message.setVisible(True)
+            self.success_message.setVisible(False)
+   
+    def show_success(self, message):
+            """Display success message below search box"""
+            self.success_message.setText(message)
+            self.success_message.setVisible(True)
+            self.error_message.setVisible(False)
+
+    def clear_messages(self):
+            """Clear all status messages"""
+            self.error_message.setVisible(False)
+            self.success_message.setVisible(False)
+
+
+#-----------------------------------------------Stock Search and Order Processing Functions----------------------------------------
 
     def search_stock(self):
         """Handle stock search by company name"""
@@ -551,68 +657,8 @@ class BuyOrderWindow(QMainWindow):
         # Call the presenter to search for the stock
         self.presenter.search_stock_by_name(company_name)
     
-    def update_total_cost(self):
-        """Update the total cost based on quantity"""
-        try:
-            quantity = self.quantity_input.value()
-            price_text = self.price_display.text().replace("Current Price: $", "")
-            price = float(price_text) if price_text and price_text != "0.00" else 0
-            
-            total = quantity * price
-            self.total_cost_value.setText(f"${total:.2f}")
-        except (ValueError, AttributeError):
-            self.total_cost_value.setText("$0.00")
-    
-    def set_loading_state(self, is_loading, message=None):
-        """Set the UI to loading state when waiting for API response"""
-        if is_loading:
-            # Show loading UI
-            self.progress_bar.setVisible(True)
-            self.search_button.setEnabled(False)
-            self.stock_search.setEnabled(False)
-            
-            # Start the loading animation
-            if message:
-                self.base_loading_message = message
-                self.status_bar.showMessage(message)
-            self.loading_dots = 0
-            self.loading_timer.start(500)  # Update every 500ms
-        else:
-            # Hide loading UI
-            self.progress_bar.setVisible(False)
-            self.search_button.setEnabled(True)
-            self.stock_search.setEnabled(True)
-            self.loading_timer.stop()
-            
-            # Reset the status bar if it was showing loading dots
-            if hasattr(self, 'base_loading_message'):
-                self.status_bar.showMessage("Ready")
-    
-    def update_loading_message(self):
-        """Update loading animation in status bar"""
-        self.loading_dots = (self.loading_dots + 1) % 4
-        dots = "." * self.loading_dots
-        self.status_bar.showMessage(f"{self.base_loading_message}{dots}")
-    
-    def show_error(self, message):
-        """Display error message below search box"""
-        self.error_message.setText(message)
-        self.error_message.setVisible(True)
-        self.success_message.setVisible(False)
-    
-    def show_success(self, message):
-        """Display success message below search box"""
-        self.success_message.setText(message)
-        self.success_message.setVisible(True)
-        self.error_message.setVisible(False)
-    
-    def clear_messages(self):
-        """Clear all status messages"""
-        self.error_message.setVisible(False)
-        self.success_message.setVisible(False)
-
     def stock_found(self, symbol, price, company_name, chart_data):
-        """Handle successful stock search"""
+        """Handle successful stock search - just update price and chart"""
         # Update UI elements
         self.stock_display.setText(f"Selected Stock: {symbol}")
         self.price_display.setText(f"Current Price: ${price:.2f}")
@@ -656,7 +702,7 @@ class BuyOrderWindow(QMainWindow):
         empty_chart.setTitle("No Stock Selected")
         empty_chart.setBackgroundVisible(False)
         empty_chart.setTitleFont(QFont("SF Pro Display", 12, QFont.Bold))
-        empty_chart.setTitleBrush(QColor("#007AFF"))
+        empty_chart.setTitleBrush(QColor(self.theme.ACCENT_COLOR))
         self.chart_view.setChart(empty_chart)
 
     def display_order_preview(self, preview_info):
@@ -687,7 +733,9 @@ class BuyOrderWindow(QMainWindow):
         success = self.presenter.process_buy_order(stock, quantity)
         if success:
             self.close()
-            
+  
+  #-----------------------------------------------Additional UI Dialog Functions----------------------------------------
+          
     def show_success_message(self, message):
         """Display success message dialog"""
         msg_box = QMessageBox(self)
@@ -703,66 +751,238 @@ class BuyOrderWindow(QMainWindow):
         msg_box.setWindowTitle("Error")
         msg_box.setText(message)
         msg_box.exec()
-        
-    def update_stock_chart(self, stock_symbol, chart_data):
-        """Update the stock chart with historical data"""
-        # Create a new chart
-        chart = QChart()
-        chart.setTitle(f"{stock_symbol} - 52 Week History")
-        chart.setTitleFont(QFont("SF Pro Display", 12, QFont.Bold))
-        chart.setTitleBrush(QColor("#007AFF"))
-        chart.setBackgroundVisible(False)
-        chart.setAnimationOptions(QChart.SeriesAnimations)
-        
-        # Create data series
-        series = QLineSeries()
-        series.setName(f"{stock_symbol} Price")
-        
-        # Add data points
-        for date_timestamp, price in chart_data:
-            series.append(date_timestamp, price)
-        
-        # Style the line
-        pen = QPen(QColor("#007AFF"))
-        pen.setWidth(3)
-        series.setPen(pen)
-        
-        chart.addSeries(series)
-        
-        # Set up axes
-        date_axis = QDateTimeAxis()
-        date_axis.setFormat("MMM yyyy")
-        date_axis.setTitleText("Date")
-        date_axis.setTitleFont(QFont("SF Pro Display", 10))
-        date_axis.setLabelsColor(QColor("#666666"))
-        date_axis.setGridLineVisible(True)
-        date_axis.setGridLineColor(QColor("#E5E5EA"))
-        
-        value_axis = QValueAxis()
-        value_axis.setTitleText("Price ($)")
-        value_axis.setTitleFont(QFont("SF Pro Display", 10))
-        value_axis.setLabelsColor(QColor("#666666"))
-        value_axis.setGridLineVisible(True)
-        value_axis.setGridLineColor(QColor("#E5E5EA"))
-        
-        # Calculate appropriate axis ranges
-        if chart_data:
-            min_x = min(date for date, _ in chart_data)
-            max_x = max(date for date, _ in chart_data)
-            min_y = min(price for _, price in chart_data)
-            max_y = max(price for _, price in chart_data)
-            
-            # Add padding to y-axis
-            y_padding = (max_y - min_y) * 0.1
-            value_axis.setRange(min_y - y_padding, max_y + y_padding)
-            date_axis.setRange(QDateTime.fromMSecsSinceEpoch(min_x), QDateTime.fromMSecsSinceEpoch(max_x))
-        
-        chart.addAxis(date_axis, Qt.AlignBottom)
-        chart.addAxis(value_axis, Qt.AlignLeft)
-        series.attachAxis(date_axis)
-        series.attachAxis(value_axis)
-        
-        # Update the chart view
-        self.chart_view.setChart(chart)
 
+#-----------------------------------------------Company Info and Chart Update Functions----------------------------------------
+
+    def update_ui_with_all_data(self, result):
+        """Update all UI elements at once"""
+        symbol = result["symbol"]
+        price = result["price"]
+        chart_data = result["chart_data"]
+        profile = result.get("profile", {})
+        description = result.get("description", "")
         
+        # Create company info content
+        company_info = self._prepare_company_info(symbol, profile, description)
+        
+        # Update everything at once
+        self.setUpdatesEnabled(False)
+        
+        try:
+            # Update chart and price info
+            self.stock_display.setText(f"Selected Stock: {symbol}")
+            self.price_display.setText(f"Current Price: ${price:.2f}")
+            self.update_total_cost()
+            self.current_price_label.setText(f"Current Price: ${price:.2f}")
+            self.update_stock_chart(symbol, chart_data)
+            
+            # Replace placeholder with company info
+            for i in range(self.main_layout.count()):
+                item = self.main_layout.itemAt(i)
+                if isinstance(item, QHBoxLayout):
+                    for j in range(item.count()):
+                        widget_item = item.itemAt(j)
+                        if widget_item and widget_item.widget() == self.company_info_placeholder:
+                            old_widget = self.company_info_placeholder
+                            item.replaceWidget(old_widget, company_info)
+                            old_widget.setParent(None)
+                            self.company_info_placeholder = company_info
+                            break
+            
+            # Enable buttons
+            self.preview_button.setEnabled(True)
+            self.buy_button.setEnabled(True)
+            
+            # Show success message
+            self.show_success(f"Found: {profile.get('name', symbol)} ({symbol})")
+        finally:
+            # Apply all changes at once
+            self.setUpdatesEnabled(True)
+            
+            # Turn off loading state
+            self.status_bar.showMessage(f"Stock information loaded")
+            self.set_loading_state(False)
+            
+            # Reset search controls
+            self.stock_search.setEnabled(True)
+            self.stock_search.setReadOnly(False)
+            self.stock_search.clearFocus()
+            QApplication.processEvents()
+   
+    def _prepare_company_info(self, symbol, profile, description):
+            """Create the company info widget but don't add it to layout yet"""
+            company_info = QFrame()
+            company_info.setObjectName("card")
+            company_info.setMinimumHeight(300)
+            company_layout = QVBoxLayout(company_info)
+            company_layout.setContentsMargins(20, 20, 20, 20)
+            
+            # Create header with name and symbol
+            header_layout = QHBoxLayout()
+            name_label = QLabel(profile.get("name", symbol))
+            name_label.setStyleSheet("font-size: 22px; font-weight: bold;")
+            ticker_label = QLabel(f"({symbol})")
+            ticker_label.setStyleSheet("font-size: 18px; color: #666;")
+            
+            # Add logo placeholder
+            logo_frame = QFrame()
+            logo_frame.setFixedSize(80, 80)
+            logo_frame.setStyleSheet(f"background-color: {self.theme.ACCENT_COLOR}; border-radius: 8px;")
+            logo_layout = QVBoxLayout(logo_frame)
+            logo_layout.setContentsMargins(5, 5, 5, 5)
+            
+            logo_label = QLabel()
+            logo_label.setAlignment(Qt.AlignCenter)
+            initial = profile.get("name", symbol)[0].upper()
+            logo_label.setText(initial)
+            logo_label.setStyleSheet("font-size: 28px; font-weight: bold; color: white;")
+            logo_layout.addWidget(logo_label)
+            
+            # If there's a logo URL, load it asynchronously after UI is updated
+            logo_url = profile.get("logoUrl", "")
+            if logo_url and logo_url.strip():
+                # Create a reference to update later
+                self.pending_logo_label = logo_label
+                self.pending_logo_url = logo_url
+                # Start loading in the background after UI updates
+                QTimer.singleShot(100, self._load_logo_async)
+            
+            header_layout.addWidget(logo_frame)
+            header_layout.addWidget(name_label)
+            header_layout.addWidget(ticker_label)
+            header_layout.addStretch()
+            
+            # Company details
+            details_grid = QGridLayout()
+            details_grid.setVerticalSpacing(10)
+            details_grid.setHorizontalSpacing(20)
+            
+            details_grid.addWidget(QLabel("Industry:"), 0, 0)
+            details_grid.addWidget(QLabel(profile.get("industry", "N/A")), 0, 1)
+            details_grid.addWidget(QLabel("Exchange:"), 0, 2)
+            details_grid.addWidget(QLabel(profile.get("exchange", "N/A")), 0, 3)
+            
+            details_grid.addWidget(QLabel("Country:"), 1, 0)
+            details_grid.addWidget(QLabel(profile.get("country", "N/A")), 1, 1)
+            details_grid.addWidget(QLabel("Website:"), 1, 2)
+            web_label = QLabel(profile.get("webUrl", "N/A"))
+            web_label.setStyleSheet("color: blue; text-decoration: underline;")
+            details_grid.addWidget(web_label, 1, 3)
+            
+            # Description
+            desc_label = QLabel("Company Description")
+            desc_label.setStyleSheet("font-size: 16px; font-weight: bold; margin-top: 15px;")
+            
+            desc_text = QTextEdit()
+            desc_text.setReadOnly(True)
+            desc_text.setMinimumHeight(100)
+            desc_text.setMaximumHeight(150)
+            desc_text.setText(description)
+            desc_text.setStyleSheet("""
+                background-color: #F8F9FA;
+                border: 1px solid #E5E5EA;
+                border-radius: 6px;
+                padding: 10px;
+            """)
+            
+            # Add all elements to company info layout
+            company_layout.addLayout(header_layout)
+            company_layout.addSpacing(15)
+            company_layout.addLayout(details_grid)
+            company_layout.addWidget(desc_label)
+            company_layout.addWidget(desc_text)
+            
+            return company_info
+    
+    def update_stock_chart(self, stock_symbol, chart_data):
+            """Update the stock chart with historical data"""
+            # Create a new chart
+            chart = QChart()
+            chart.setTitle(f"{stock_symbol} - 52 Week History")
+            chart.setTitleFont(QFont("SF Pro Display", 12, QFont.Bold))
+            chart.setTitleBrush(QColor(self.theme.ACCENT_COLOR))
+            chart.setBackgroundVisible(False)
+            chart.setAnimationOptions(QChart.SeriesAnimations)
+            
+            # Create data series
+            series = QLineSeries()
+            series.setName(f"{stock_symbol} Price")
+            
+            # Add data points
+            for date_timestamp, price in chart_data:
+                series.append(date_timestamp, price)
+            
+            # Style the line
+            pen = QPen(QColor(self.theme.ACCENT_COLOR))
+            pen.setWidth(3)
+            series.setPen(pen)
+            
+            chart.addSeries(series)
+            
+            # Set up axes
+            date_axis = QDateTimeAxis()
+            date_axis.setFormat("MMM yyyy")
+            date_axis.setTitleText("Date")
+            date_axis.setTitleFont(QFont("SF Pro Display", 10))
+            date_axis.setLabelsColor(QColor("#666666"))
+            date_axis.setGridLineVisible(True)
+            date_axis.setGridLineColor(QColor("#E5E5EA"))
+            
+            value_axis = QValueAxis()
+            value_axis.setTitleText("Price ($)")
+            value_axis.setTitleFont(QFont("SF Pro Display", 10))
+            value_axis.setLabelsColor(QColor("#666666"))
+            value_axis.setGridLineVisible(True)
+            value_axis.setGridLineColor(QColor("#E5E5EA"))
+            
+            # Calculate appropriate axis ranges
+            if chart_data:
+                min_x = min(date for date, _ in chart_data)
+                max_x = max(date for date, _ in chart_data)
+                min_y = min(price for _, price in chart_data)
+                max_y = max(price for _, price in chart_data)
+                
+                # Add padding to y-axis
+                y_padding = (max_y - min_y) * 0.1
+                value_axis.setRange(min_y - y_padding, max_y + y_padding)
+                date_axis.setRange(QDateTime.fromMSecsSinceEpoch(min_x), QDateTime.fromMSecsSinceEpoch(max_x))
+            
+            chart.addAxis(date_axis, Qt.AlignBottom)
+            chart.addAxis(value_axis, Qt.AlignLeft)
+            series.attachAxis(date_axis)
+            series.attachAxis(value_axis)
+            
+            # Update the chart view
+            self.chart_view.setChart(chart)
+
+#-----------------------------------------------Logo Loading Functions----------------------------------------
+
+    def _load_logo_async(self):
+        """Load logo asynchronously after UI is updated"""
+        if hasattr(self, 'pending_logo_url') and hasattr(self, 'pending_logo_label'):
+            # Create network request to load the logo
+            self.network_manager = QNetworkAccessManager()
+            self.network_manager.finished.connect(
+                lambda reply: self._update_logo(reply, self.pending_logo_label)
+            )
+            
+            # Start the network request
+            request = QNetworkRequest(QUrl(self.pending_logo_url))
+            self.network_manager.get(request)
+
+    def _update_logo(self, reply, label):
+        """Update logo when loaded"""
+        if reply.error() == QNetworkReply.NoError:
+            try:
+                data = reply.readAll()
+                pixmap = QPixmap()
+                if pixmap.loadFromData(data):
+                    scaled_pixmap = pixmap.scaled(70, 70, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                    label.setPixmap(scaled_pixmap)
+                    label.setText("")  # Clear any text
+            except Exception as e:
+                print(f"Error processing logo image: {e}")
+
+    
+        
+    

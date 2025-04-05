@@ -1,4 +1,7 @@
-from PySide6.QtCore import QObject, Signal, QThread
+from PySide6.QtCore import QObject, Signal, QThread,QByteArray
+import requests
+from io import BytesIO
+from PySide6.QtGui import QPixmap
 
 class WorkerThread(QThread):
     """Worker thread for API calls"""
@@ -64,55 +67,18 @@ class BuyOrderPresenter(QObject):
         self.loadingStartedSignal.emit(f"Searching for {company_name}...")
         
         # Create a worker thread for the API call
-        self.worker = WorkerThread(self._search_stock_worker, company_name)
+        self.worker = WorkerThread(self.search_stock_worker, company_name)
         self.worker.finished.connect(self._search_completed)
         self.worker.start()
     
-    def _search_stock_worker(self, company_name):
-        """Worker function that runs in a separate thread"""
-        # Search for the stock symbol
-        success, symbol, error_message = self.model.search_symbol_by_name(company_name)
-        
-        if success and symbol:
-            # Get current price and chart data
-            price = self.model.get_current_price(symbol)
-            chart_data = self.model.get_stock_history(symbol)
-            
-            return {
-                "success": True,
-                "symbol": symbol,
-                "price": price,
-                "company_name": company_name,
-                "chart_data": chart_data
-            }
-        else:
-            return {
-                "success": False,
-                "company_name": company_name,
-                "error_message": error_message or "Stock not found"
-            }
     
     def _search_completed(self, result):
         """Handle the search result from the worker thread"""
-        # Hide loading indicator
-        self.loadingFinishedSignal.emit()
+        # DO NOT hide loading indicator yet - keep it animating
         
         if result["success"]:
-            # Stock was found
-            symbol = result["symbol"]
-            price = result["price"]
-            company_name = result["company_name"]
-            chart_data = result["chart_data"]
-            
-            # Store current stock data
-            self.current_stock = {
-                "symbol": symbol,
-                "price": price,
-                "chart_data": chart_data
-            }
-            
-            # Emit signal to update the view
-            self.stockFoundSignal.emit(symbol, price, company_name, chart_data)
+            # Stock was found - pass all data to the view
+            self.view.update_ui_with_all_data(result)
         else:
             # Stock was not found
             company_name = result["company_name"]
@@ -120,7 +86,10 @@ class BuyOrderPresenter(QObject):
             
             # Emit signal to update the view
             self.stockNotFoundSignal.emit(company_name, error_message)
-
+            
+            # Only turn off loading for error case
+            self.loadingFinishedSignal.emit()
+            
     def process_buy_order(self, stock, quantity):
         """Process the buy order through the model"""
         try:
@@ -164,3 +133,52 @@ class BuyOrderPresenter(QObject):
             self.view.show_error_message(f"Error generating preview: {str(e)}")
             return False
     
+    def search_stock_worker(self, company_name):
+        """Worker function that runs in a separate thread"""
+        # Search for the stock symbol
+        success, symbol, error_message = self.model.search_symbol_by_name(company_name)
+        
+        if success and symbol:
+            # Get current price and chart data
+            price = self.model.get_current_price(symbol)
+            chart_data = self.model.get_stock_history(symbol)
+            
+            # Get additional company information
+            company_profile = self.model.get_company_profile(symbol)
+            company_description = self.model.get_company_description(symbol)
+            
+            return {
+                "success": True,
+                "symbol": symbol,
+                "price": price,
+                "company_name": company_name,
+                "chart_data": chart_data,
+                "profile": company_profile,
+                "description": company_description
+            }
+        else:
+            return {
+                "success": False,
+                "company_name": company_name,
+                "error_message": error_message or "Stock not found"
+            }
+
+    # def on_search_complete(self, result):
+    #     """Handle the completion of a search operation"""
+    #     print("Search complete, result:", result["success"])
+        
+    #     if result["success"]:
+    #         symbol = result["symbol"]
+    #         price = result["price"]
+    #         chart_data = result["chart_data"]
+    #         profile = result.get("profile", {})
+    #         description = result.get("description", "")
+            
+    #         print(f"Calling display_stock_info for {symbol}")
+    #         print(f"Profile data: {profile}")
+    #         print(f"Description: {description[:50] if description else 'None'}")
+            
+    #         # Use the new display_stock_info method
+    #         self.view.display_stock_info(symbol, price, chart_data, profile, description)
+    #     else:
+    #         self.view.show_error(result["error_message"])

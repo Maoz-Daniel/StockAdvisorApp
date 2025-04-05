@@ -2,11 +2,16 @@ from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QLabel, QFrame, QPushButton, 
     QGraphicsDropShadowEffect, QLineEdit, QSpinBox, QComboBox, QApplication,
     QScrollArea, QSizePolicy, QHBoxLayout, QStatusBar, QMessageBox, QDialog,
-    QCompleter, QProgressBar, QTextEdit, QListWidget, QListWidgetItem
+    QCompleter, QProgressBar, QTextEdit, QListWidget, QListWidgetItem,QMenu
 )
-from PySide6.QtCore import Qt, QSize, QDate, QMargins, QDateTime, QTimer
-from PySide6.QtGui import QColor, QFont, QPainter, QPen
+from PySide6.QtSvg import QSvgRenderer
+from PySide6.QtCore import Qt, QSize, QDate, QMargins, QDateTime, QTimer,QByteArray
+from PySide6.QtGui import QColor, QFont, QPainter, QPen,QIcon, QPixmap, QPainter, QFont, QPen, QColor
 from PySide6.QtCharts import QChart, QChartView, QLineSeries, QValueAxis, QDateTimeAxis
+# Import the FaceID6 theme
+from assets.theme import FaceID6Theme
+from assets.theme import LuxuryTheme
+from assets.theme import DarkLuxuryTheme
 
 from presenters.sell_order_presenter import SellOrderPresenter
 
@@ -17,57 +22,20 @@ class OrderPreviewDialog(QDialog):
         self.setWindowTitle("Sell Order Preview")
         self.resize(400, 300)
         
-        # Apply dark theme styling
-        self.setStyleSheet("""
-            QDialog {
-                background-color: #112240;
-                color: #E8E8E8;
-                font-family: 'Segoe UI', 'Roboto', 'Open Sans', sans-serif;
-            }
-            QLabel {
-                color: #E8E8E8;
-                font-size: 14px;
-            }
-            QFrame {
-                background-color: #1E3A5F;
-                border-radius: 8px;
-                border: 1px solid #2C5A8C;
-            }
-            QPushButton {
-                background-color: #1E3A5F;
-                color: #E8E8E8;
-                border: 1px solid #2C5A8C;
-                border-radius: 6px;
-                padding: 10px;
-                font-size: 14px;
-                font-weight: 600;
-                min-width: 120px;
-                min-height: 40px;
-            }
-            QPushButton:hover {
-                background-color: #2C5A8C;
-                color: #78BEFF;
-            }
-        """)
+        # Apply FaceID6 theme styling
+        self.setStyleSheet(FaceID6Theme.STYLE_SHEET)
         
         layout = QVBoxLayout(self)
         layout.setSpacing(15)
         
         # Header
         header = QLabel("Sell Order Preview")
-        header.setStyleSheet("font-size: 20px; font-weight: bold; color: #78BEFF;")
+        header.setObjectName("section-title")
         layout.addWidget(header)
         
         # Order details
         details = QFrame()
-        details.setObjectName("red-card")
-        details.setStyleSheet("""
-            background-color: rgba(44, 90, 140, 0.3);
-            border-radius: 8px;
-            border: 1px solid #FF7676;
-            border-left: 3px solid #FF7676;
-            padding: 15px;
-        """)
+        details.setObjectName("order-summary")
         details_layout = QVBoxLayout(details)
         
         stock_label = QLabel(f"Stock: {preview_info['stock']}")
@@ -78,8 +46,8 @@ class OrderPreviewDialog(QDialog):
         net_value_label = QLabel(f"Net Proceeds: ${preview_info['total_after_commission']:.2f}")
         remaining_label = QLabel(f"Shares Remaining After Sale: {preview_info['shares_remaining']}")
         
-        total_label.setStyleSheet("font-weight: bold; font-size: 16px; color: #FF7676;")
-        net_value_label.setStyleSheet("font-weight: bold; font-size: 16px; color: #66CFA6;")
+        total_label.setObjectName("value-text")
+        net_value_label.setObjectName("value-text")
         
         details_layout.addWidget(stock_label)
         details_layout.addWidget(quantity_label)
@@ -94,14 +62,7 @@ class OrderPreviewDialog(QDialog):
         # Buttons
         buttons_layout = QHBoxLayout()
         confirm_button = QPushButton("Confirm Sale")
-        confirm_button.setObjectName("red-button")
-        confirm_button.setStyleSheet("""
-            background-color: #1E3A5F;
-            color: #FF7676;
-            border: 1px solid #FF7676;
-            border-left: 3px solid #FF7676;
-            border-right: 3px solid #FF7676;
-        """)
+        confirm_button.setObjectName("highlight-button")
         confirm_button.clicked.connect(self.accept)
         
         cancel_button = QPushButton("Cancel")
@@ -111,239 +72,28 @@ class OrderPreviewDialog(QDialog):
         buttons_layout.addWidget(confirm_button)
         layout.addLayout(buttons_layout)
 
-
 class SellOrderWindow(QMainWindow):
     def __init__(self, model, parent=None):
         super().__init__(parent)
         self.model = model
         self.username = model.get_username()
-        self.setWindowTitle("Sell Order - SmartInvest Pro")
-        self.resize(900, 800)  # Increased height for the chart
+        self.setWindowTitle("Sell Stock - SmartInvest Pro")
+        self.resize(900, 800)
 
-        # Apply luxury dark theme styling
-        self.setStyleSheet("""
-            /* Main window and backgrounds */
-            QMainWindow, QWidget {
-                font-family: 'Segoe UI', 'Roboto', 'Open Sans', sans-serif;
-                background-color: #112240;
-                color: #E8E8E8;
-            }
-            
-            /* Header styling */
-            QFrame#header-frame {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                             stop:0 #112240, stop:1 #1E3A5F);
-                border-radius: 10px;
-                padding: 20px;
-                min-height: 120px;
-                border: 1px solid #2C5A8C;
-                border-bottom: 2px solid #FF7676;
-            }
-            
-            /* Card frames */
-            QFrame {
-                background-color: #1E3A5F;
-                border-radius: 8px;
-                border: 1px solid #2C5A8C;
-            }
-            
-            /* Labels */
-            QLabel {
-                color: #E8E8E8;
-                font-size: 14px;
-            }
-            
-            QLabel#welcome-label {
-                font-size: 24px;
-                font-weight: bold;
-                color: #FFFFFF;
-                letter-spacing: 0.5px;
-            }
-            
-            QLabel#subtitle-label {
-                color: #C0C0C0;
-                font-size: 15px;
-                font-weight: normal;
-            }
-            
-            QLabel#section-title {
-                font-size: 18px;
-                font-weight: bold;
-                color: #78BEFF;
-                margin-top: 10px;
-                margin-bottom: 5px;
-                border-left: 3px solid #FF7676;
-                padding-left: 10px;
-            }
-            
-            /* Action Buttons */
-            QPushButton {
-                background-color: #1E3A5F;
-                color: #E8E8E8;
-                border: 1px solid #2C5A8C;
-                border-radius: 6px;
-                padding: 12px 20px;
-                font-size: 14px;
-                font-weight: 600;
-                min-width: 160px;
-                min-height: 45px;
-            }
-            
-            QPushButton:hover {
-                background-color: #2C5A8C;
-                color: #78BEFF;
-            }
-            
-            QPushButton:pressed {
-                background-color: #112240;
-                border: 1px solid #78BEFF;
-            }
-            
-            QPushButton:disabled {
-                background-color: #1A2A40;
-                color: #6A7A95;
-                border: 1px solid #334866;
-            }
-            
-            QPushButton#red-button {
-                background-color: #1E3A5F;
-                color: #FF7676;
-                border: 1px solid #FF7676;
-                border-left: 3px solid #FF7676;
-                border-right: 3px solid #FF7676;
-            }
-            
-            QPushButton#red-button:hover {
-                background-color: rgba(255, 118, 118, 0.1);
-                color: #FF7676;
-            }
-            
-            QPushButton#red-button:disabled {
-                background-color: #1A2A40;
-                color: #A15A5A;
-                border: 1px solid #703232;
-            }
-            
-            /* Form inputs */
-            QLineEdit, QSpinBox, QComboBox, QListWidget {
-                background-color: #1E3A5F;
-                color: #E8E8E8;
-                border: 1px solid #2C5A8C;
-                border-radius: 6px;
-                padding: 8px;
-                min-height: 38px;
-                font-size: 14px;
-            }
-            
-            QLineEdit:focus, QSpinBox:focus, QComboBox:focus, QListWidget:focus {
-                border: 1px solid #78BEFF;
-            }
-            
-            QLineEdit:disabled, QSpinBox:disabled, QComboBox:disabled, QListWidget:disabled {
-                background-color: #183052;
-                color: #6A7A95;
-                border: 1px solid #334866;
-            }
-            
-            /* Status bar */
-            QStatusBar {
-                background-color: #112240;
-                color: #C0C0C0;
-                padding: 8px;
-                font-size: 13px;
-                border-top: 1px solid #2C5A8C;
-            }
-            
-            /* Scroll Area */
-            QScrollArea {
-                border: none;
-                background-color: transparent;
-            }
-            
-            QScrollBar:vertical {
-                background: #112240;
-                width: 10px;
-                margin: 0;
-                border-radius: 5px;
-            }
-            
-            QScrollBar::handle:vertical {
-                background: #2C5A8C;
-                min-height: 30px;
-                border-radius: 5px;
-            }
-            
-            QScrollBar::handle:vertical:hover {
-                background: #78BEFF;
-            }
-            
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-                height: 0;
-            }
-            
-            /* Portfolio section */
-            QFrame#portfolio-frame {
-                background-color: rgba(44, 90, 140, 0.3);
-                border-radius: 8px;
-                border: 1px solid rgba(120, 190, 255, 0.2);
-                border-top: 2px solid #FF7676;
-                padding: 15px;
-            }
-            
-            /* Error message styling */
-            QLabel#error-message {
-                color: #FF6B6B;
-                font-size: 14px;
-                font-weight: bold;
-                padding: 5px;
-            }
-            
-            /* Success message styling */
-            QLabel#success-message {
-                color: #66CFA6;
-                font-size: 14px;
-                font-weight: bold;
-                padding: 5px;
-            }
-            
-            /* Progress bar styling */
-            QProgressBar {
-                border: 1px solid #2C5A8C;
-                border-radius: 5px;
-                background-color: #1E3A5F;
-                text-align: center;
-                height: 10px;
-                color: #E8E8E8;
-            }
-            
-            QProgressBar::chunk {
-                background-color: #FF7676;
-                border-radius: 4px;
-            }
-            
-            /* List item styling */
-            QListWidget::item {
-                border-bottom: 1px solid #2C5A8C;
-                padding: 10px;
-                margin-bottom: 2px;
-            }
-            
-            QListWidget::item:selected {
-                background-color: #2C5A8C;
-                color: #FFFFFF;
-                border-left: 3px solid #FF7676;
-            }
-            
-            QListWidget::item:hover {
-                background-color: rgba(44, 90, 140, 0.5);
-            }
-        """)
+        # Apply FaceID6 theme styling
+        self.setStyleSheet(FaceID6Theme.STYLE_SHEET)
+        
+        self.showFullScreen()
 
         # Main structure with scrolling support
         central_widget = QWidget()
         main_container_layout = QVBoxLayout(central_widget)
         main_container_layout.setContentsMargins(0, 0, 0, 0)
         main_container_layout.setSpacing(0)
+
+        # Create and add header bar
+        header_bar = self.create_header_bar()
+        main_container_layout.addWidget(header_bar)
         
         # Create ScrollArea for scrolling
         scroll_area = QScrollArea()
@@ -382,7 +132,7 @@ class SellOrderWindow(QMainWindow):
         
         # Portfolio section
         portfolio_section = QFrame()
-        portfolio_section.setObjectName("portfolio-frame")
+        portfolio_section.setObjectName("card")
         portfolio_section.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         portfolio_layout = QVBoxLayout(portfolio_section)
         
@@ -418,6 +168,7 @@ class SellOrderWindow(QMainWindow):
         
         # Chart section
         chart_section = QFrame()
+        chart_section.setObjectName("card")
         chart_section.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         chart_layout = QVBoxLayout(chart_section)
         
@@ -427,42 +178,38 @@ class SellOrderWindow(QMainWindow):
         self.chart_view = QChartView()
         self.chart_view.setMinimumHeight(300)
         self.chart_view.setRenderHint(QPainter.Antialiasing)
-        self.chart_view.setStyleSheet("""
-            background-color: #1E3A5F;
-            border-radius: 8px;
-            border: 1px solid #2C5A8C;
-        """)
-        
-        # Add shadow effect to chart
-        chart_shadow = QGraphicsDropShadowEffect(self.chart_view)
-        chart_shadow.setBlurRadius(15)
-        chart_shadow.setColor(QColor(255, 118, 118, 30))  # Red tint
-        chart_shadow.setOffset(0, 2)
-        self.chart_view.setGraphicsEffect(chart_shadow)
+        self.chart_view.setObjectName("chart-container")
         
         # Setup empty chart
         empty_chart = QChart()
         empty_chart.setTitle("No Stock Selected")
         empty_chart.setBackgroundVisible(False)
-        empty_chart.setTitleFont(QFont("Segoe UI", 12, QFont.Bold))
-        empty_chart.setTitleBrush(QColor("#FF7676"))
+        empty_chart.setTitleFont(QFont("SF Pro Display", 12, QFont.Bold))
+        empty_chart.setTitleBrush(QColor(FaceID6Theme.PRIMARY_COLOR))
         self.chart_view.setChart(empty_chart)
         
         chart_layout.addWidget(chart_title)
         chart_layout.addWidget(self.chart_view)
+        
         self.current_price_label = QLabel("Current Price: $0.00")
         self.current_price_label.setAlignment(Qt.AlignCenter)
-        self.current_price_label.setStyleSheet("color: #78BEFF; font-size: 16px; font-weight: bold;")
+        self.current_price_label.setObjectName("accent-text")
         chart_layout.addWidget(self.current_price_label)
         
         self.main_layout.addWidget(chart_section)
 
         # Sell order form section
         self.form_frame = QFrame()
+        self.form_frame.setObjectName("card")
         self.form_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         form_layout = QVBoxLayout(self.form_frame)
         form_layout.setSpacing(18)
         form_layout.setContentsMargins(20, 20, 20, 20)
+
+        # Form title
+        form_title = QLabel("Sell Order Details")
+        form_title.setObjectName("section-title")
+        form_layout.addWidget(form_title)
 
         # Create a helper function for form rows
         def create_form_row(label_text, input_widget):
@@ -472,6 +219,7 @@ class SellOrderWindow(QMainWindow):
             row_layout.setSpacing(8)
             
             label = QLabel(label_text)
+            label.setObjectName("accent-text")
             label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
             
             input_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
@@ -483,18 +231,19 @@ class SellOrderWindow(QMainWindow):
 
         # Form elements
         self.stock_display = QLabel("Selected Stock: None")
-        self.stock_display.setStyleSheet("font-size: 16px; font-weight: bold; color: #FF7676;")
+        self.stock_display.setObjectName("value-text")
         
         self.shares_owned_label = QLabel("Shares Owned: 0")
-        self.shares_owned_label.setStyleSheet("font-size: 15px; color: #78BEFF;")
+        self.shares_owned_label.setObjectName("accent-text")
         
         self.quantity_input = QSpinBox()
+        self.quantity_input.setObjectName("quantity-spinner")
         self.quantity_input.setRange(1, 1000)
         quantity_row = create_form_row("Enter Quantity to Sell:", self.quantity_input)
         
         # Stock price display (read-only)
         self.price_display = QLabel("Current Price: $0.00")
-        self.price_display.setStyleSheet("color: #78BEFF;")
+        self.price_display.setObjectName("accent-text")
         
         # Add all elements to form layout
         form_layout.addWidget(self.stock_display)
@@ -515,7 +264,7 @@ class SellOrderWindow(QMainWindow):
         self.preview_button.clicked.connect(self.preview_order)
         
         self.sell_button = QPushButton("✅ Confirm Sell Order")
-        self.sell_button.setObjectName("red-button")
+        self.sell_button.setObjectName("highlight-button")
         self.sell_button.setCursor(Qt.PointingHandCursor)
         self.sell_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.sell_button.clicked.connect(self.confirm_sell)
@@ -554,6 +303,154 @@ class SellOrderWindow(QMainWindow):
         self.loading_timer = QTimer(self)
         self.loading_timer.timeout.connect(self.update_loading_message)
 
+
+    def create_header_bar(self):
+        """Create a visible header bar with logo and navigation buttons"""
+        # Create header frame
+        header_frame = QFrame()
+        header_frame.setObjectName("header-bar")
+        header_frame.setFixedHeight(60)
+        
+        # Header layout
+        header_layout = QHBoxLayout(header_frame)
+        header_layout.setContentsMargins(15, 0, 15, 0)
+        
+        # SVG Logo with dollar sign
+        svg_data = """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-dollar-sign h-8 w-8 text-emerald-400"><line x1="12" x2="12" y1="2" y2="22"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>"""
+
+        # Create logo from SVG
+        logo_renderer = QSvgRenderer(QByteArray(svg_data.encode()))
+        logo_pixmap = QPixmap(24, 24)
+        logo_pixmap.fill(Qt.transparent)
+        logo_painter = QPainter(logo_pixmap)
+        logo_renderer.render(logo_painter)
+        logo_painter.end()
+        
+        # Logo widget
+        logo_label = QLabel()
+        logo_label.setPixmap(logo_pixmap)
+        
+        # App name (clickable)
+        app_name = QPushButton("InvestPro")
+        app_name.setStyleSheet("""
+            QPushButton {
+                color: white; 
+                font-size: 20px; 
+                font-weight: bold; 
+                margin-left: 10px;
+                background: transparent;
+                border: none;
+            }
+            QPushButton:hover {
+                color: #E5E5EA;
+            }
+        """)
+        app_name.setCursor(Qt.PointingHandCursor)
+        app_name.clicked.connect(self.close)  # Close to return to home
+        
+        # Logo container
+        logo_container = QHBoxLayout()
+        logo_container.addWidget(logo_label)
+        logo_container.addWidget(app_name)
+        logo_container.addStretch()
+        
+        # Navigation buttons layout
+        nav_layout = QHBoxLayout()
+        
+        # Define menu options with actions
+        menu_options = [
+            ("Main Menu", [
+                ("Dashboard", self.close),
+                ("My Portfolio", self.close),
+                ("Market Overview", self.close),
+                ("Reports & Analysis", self.close),
+                ("Account Settings", self.close),
+                ("Exit", self.close)
+            ]),
+            ("Trading", [
+                ("Buy Assets", self.close),
+                ("Sell Assets", lambda: None),  # Already in Sell window, do nothing
+                ("Order History", self.close)
+            ]),
+            ("Analytics", [
+                ("Performance", self.close),
+                ("Risk Analysis", self.close),
+                ("AI Insights", self.close)
+            ]),
+            ("Help", [
+                ("Documentation", self.close),
+                ("Support", self.close),
+                ("About", self.close)
+            ])
+        ]
+        
+        # Create dropdown menus
+        for menu_name, menu_items in menu_options:
+            menu_btn = QPushButton(menu_name)
+            menu_btn.setStyleSheet("""
+                QPushButton {
+                    color: #D1D5DB;
+                    background: transparent;
+                    border: none;
+                    padding: 8px 12px;
+                    font-size: 14px;
+                }
+                QPushButton:hover {
+                    color: white;
+                }
+            """)
+            
+            # Create dropdown menu
+            dropdown_menu = QMenu()
+            for item_name, action in menu_items:
+                menu_action = dropdown_menu.addAction(item_name)
+                menu_action.triggered.connect(action)
+            
+            # Set dropdown menu for button
+            menu_btn.setMenu(dropdown_menu)
+            
+            nav_layout.addWidget(menu_btn)
+        
+        # Account button
+        account_btn = QPushButton()
+        svg_user_data = """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="transparent" stroke="#D1D5DB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user h-6 w-6"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>"""
+        
+        # Create user icon from SVG
+        user_renderer = QSvgRenderer(QByteArray(svg_user_data.encode()))
+        user_pixmap = QPixmap(24, 24)
+        user_pixmap.fill(Qt.transparent)
+        user_painter = QPainter(user_pixmap)
+        user_renderer.render(user_painter)
+        user_painter.end()
+        
+        account_btn.setIcon(QIcon(user_pixmap))
+        account_btn.setStyleSheet("""
+            QPushButton {
+                background: rgba(255, 255, 255, 0.1);
+                border: none;
+                border-radius: 20px;
+                padding: 8px;
+            }
+            QPushButton:hover {
+                background: rgba(255, 255, 255, 0.2);
+            }
+        """)
+        
+        # Main header layout
+        header_layout.addLayout(logo_container)
+        header_layout.addLayout(nav_layout)  # Add the navigation menu
+        header_layout.addStretch()
+        header_layout.addWidget(account_btn)
+        
+        # Overall frame styling - match the main window style
+        header_frame.setStyleSheet(f"""
+        QFrame#header-bar {{
+            background-color: {FaceID6Theme.PRIMARY_COLOR};
+            color: white;
+        }}
+    """)
+        
+        return header_frame
 
     def update_user_info(self, username):
         """Update username in the UI"""
@@ -739,8 +636,8 @@ class SellOrderWindow(QMainWindow):
         # Create a new chart
         chart = QChart()
         chart.setTitle(f"{stock_symbol} - 52 Week History")
-        chart.setTitleFont(QFont("Segoe UI", 12, QFont.Bold))
-        chart.setTitleBrush(QColor("#FF7676"))
+        chart.setTitleFont(QFont("SF Pro Display", 12, QFont.Bold))
+        chart.setTitleBrush(QColor(FaceID6Theme.PRIMARY_COLOR))  # Use theme color
         chart.setBackgroundVisible(False)
         chart.setAnimationOptions(QChart.SeriesAnimations)
         
@@ -752,8 +649,8 @@ class SellOrderWindow(QMainWindow):
         for date_timestamp, price in chart_data:
             series.append(date_timestamp, price)
         
-        # Style the line
-        pen = QPen(QColor("#FF7676"))
+        # Style the line with theme color
+        pen = QPen(QColor(FaceID6Theme.PRIMARY_COLOR))
         pen.setWidth(3)
         series.setPen(pen)
         
@@ -763,17 +660,17 @@ class SellOrderWindow(QMainWindow):
         date_axis = QDateTimeAxis()
         date_axis.setFormat("MMM yyyy")
         date_axis.setTitleText("Date")
-        date_axis.setTitleFont(QFont("Segoe UI", 10))
-        date_axis.setLabelsColor(QColor("#E8E8E8"))
+        date_axis.setTitleFont(QFont("SF Pro Display", 10))
+        date_axis.setLabelsColor(QColor(FaceID6Theme.TEXT_SECONDARY))  # Use theme color
         date_axis.setGridLineVisible(True)
-        date_axis.setGridLineColor(QColor("#2C5A8C"))
+        date_axis.setGridLineColor(QColor("#E5E5EA"))  # Light grid lines
         
         value_axis = QValueAxis()
         value_axis.setTitleText("Price ($)")
-        value_axis.setTitleFont(QFont("Segoe UI", 10))
-        value_axis.setLabelsColor(QColor("#E8E8E8"))
+        value_axis.setTitleFont(QFont("SF Pro Display", 10))
+        value_axis.setLabelsColor(QColor(FaceID6Theme.TEXT_SECONDARY))  # Use theme color
         value_axis.setGridLineVisible(True)
-        value_axis.setGridLineColor(QColor("#2C5A8C"))
+        value_axis.setGridLineColor(QColor("#E5E5EA"))  # Light grid lines
         
         # Calculate appropriate axis ranges
         if chart_data:

@@ -316,16 +316,17 @@ class FaceID6Theme:
     """
     
     # Color palette
-    PRIMARY_COLOR = "#007AFF"       # iOS blue
-    SECONDARY_COLOR = "#5AC8FA"     # Light blue
-    SUCCESS_COLOR = "#34C759"       # Green
-    WARNING_COLOR = "#FF9500"       # Orange
-    DANGER_COLOR = "#FF3B30"        # Red
-    BACKGROUND_COLOR = "#F2F2F7"    # Light gray background
-    CARD_COLOR = "#FFFFFF"          # White
-    TEXT_PRIMARY = "#000000"        # Black text
-    TEXT_SECONDARY = "#666666"      # Dark gray text
-    TEXT_MUTED = "#8E8E93"          # iOS gray text
+    PRIMARY_COLOR = "#1F2937"       # Dark blue/slate for header bar
+    SECONDARY_COLOR = "#30455C"     # Button color
+    ACCENT_COLOR = "#37506D"        # iOS blue accent color
+    SUCCESS_COLOR = "#34C759"       # Green (unchanged)
+    WARNING_COLOR = "#FF9500"       # Orange (unchanged)
+    DANGER_COLOR = "#FF3B30"        # Red (unchanged)
+    BACKGROUND_COLOR = "#F2F2F7"    # Light gray background (unchanged)
+    CARD_COLOR = "#FFFFFF"          # White (unchanged)
+    TEXT_PRIMARY = "#000000"        # Black text (unchanged)
+    TEXT_SECONDARY = "#A6BCD3"      # Changed to your specified color
+    TEXT_MUTED = "#8E8E93"
     
     # Main stylesheet
     STYLE_SHEET = f"""
@@ -410,7 +411,7 @@ class FaceID6Theme:
         /* Button styling */
         QPushButton {{
             background-color: {BACKGROUND_COLOR};
-            color: {PRIMARY_COLOR};
+            color: {SECONDARY_COLOR};
             border: 1px solid #E5E5EA;
             border-radius: 10px;
             padding: 15px 20px;
@@ -427,13 +428,13 @@ class FaceID6Theme:
         }}
         
         QPushButton#highlight-button {{
-            background-color: {PRIMARY_COLOR};
+            background-color: {ACCENT_COLOR};
             color: white;
             border: none;
         }}
         
         QPushButton#highlight-button:hover {{
-            background-color: {SECONDARY_COLOR};
+            background-color: #0069D9;
         }}
         
         /* Header styles */
@@ -463,7 +464,7 @@ class FaceID6Theme:
         QLabel#account-text {{
             font-size: 16px;
             font-weight: 600;
-            color: {PRIMARY_COLOR};
+            color: {ACCENT_COLOR};
         }}
         
         QLabel#quote-text {{
@@ -517,7 +518,7 @@ class FaceID6Theme:
         QLabel#accent-text {{
             font-size: 14px;
             font-weight: 600;
-            color: {PRIMARY_COLOR};
+            color: {ACCENT_COLOR};
         }}
         
         /* Table styling */
@@ -568,12 +569,12 @@ class FaceID6Theme:
         }}
         
         QTabBar::tab:selected {{
-            color: {PRIMARY_COLOR};
-            border-bottom: 2px solid {PRIMARY_COLOR};
+            color: {ACCENT_COLOR};
+            border-bottom: 2px solid {ACCENT_COLOR};
         }}
         
         QTabBar::tab:hover {{
-            color: {PRIMARY_COLOR};
+            color: {ACCENT_COLOR};
         }}
         
         /* Scroll area */
@@ -660,7 +661,7 @@ class FaceID6Theme:
         }}
         
         QLineEdit#stock-search:focus {{
-            border: 1px solid {PRIMARY_COLOR};
+            border: 1px solid {ACCENT_COLOR};
         }}
         
         /* Order form styling */
@@ -690,9 +691,9 @@ class FaceID6Theme:
         }}
         
         QLabel#total-label {{
-            color: {TEXT_PRIMARY};
+            color: {ACCENT_COLOR};
             font-size: 16px;
-            font-weight: 600;
+            font-weight: bold;
         }}
         
         QLabel#total-value {{
@@ -740,6 +741,77 @@ class FaceID6Theme:
             color: {TEXT_PRIMARY};
             font-size: 18px;
             font-weight: 600;
+        }}
+        
+        /* Error and success messages */
+        QLabel#error-message {{
+            color: {DANGER_COLOR};
+            font-size: 14px;
+            font-weight: bold;
+            padding: 5px;
+        }}
+
+        QLabel#success-message {{
+            color: {SUCCESS_COLOR};
+            font-size: 14px;
+            font-weight: bold;
+            padding: 5px;
+        }}
+        
+        /* Progress bar styling */
+        QProgressBar {{
+            border: 1px solid #E5E5EA;
+            border-radius: 5px;
+            background-color: {BACKGROUND_COLOR};
+            text-align: center;
+            height: 10px;
+        }}
+
+        QProgressBar::chunk {{
+            background-color: {ACCENT_COLOR};
+            border-radius: 4px;
+        }}
+        
+        /* List widget styling */
+        QListWidget {{
+            background-color: {CARD_COLOR};
+            border-radius: 8px;
+            border: 1px solid #E5E5EA;
+            padding: 5px;
+        }}
+
+        QListWidget::item {{
+            padding: 10px;
+            border-bottom: 1px solid #E5E5EA;
+            border-radius: 5px;
+        }}
+
+        QListWidget::item:selected {{
+            background-color: #E5E5EA;
+            color: {TEXT_PRIMARY};
+        }}
+
+        QListWidget::item:hover {{
+            background-color: rgba(0, 122, 255, 0.05);
+        }}
+        
+        /* Stock display styling */
+        QLabel#stock-display {{
+            font-size: 16px;
+            font-weight: bold;
+            color: {ACCENT_COLOR};
+        }}
+        
+        /* Price display styling */
+        QLabel#price-display {{
+            color: {ACCENT_COLOR};
+        }}
+        
+        /* Current price label styling */
+        QLabel#current-price-label {{
+            color: {ACCENT_COLOR}; 
+            font-size: 16px; 
+            font-weight: bold;
         }}
     """
 class DarkLuxuryTheme:
