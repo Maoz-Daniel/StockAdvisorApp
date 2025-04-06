@@ -92,19 +92,33 @@ class SellOrderPresenter(QObject):
         self.worker = WorkerThread(self._select_stock_worker, symbol, shares_owned)
         self.worker.finished.connect(self._stock_selection_completed)
         self.worker.start()
+        
     
     def _select_stock_worker(self, symbol, shares_owned):
         """Worker function to get stock data"""
-        # Get current price and chart data for the selected stock
-        price = self.model.get_current_price(symbol)
-        chart_data = self.model.get_stock_history(symbol)
-        
-        return {
-            "symbol": symbol,
-            "price": price,
-            "shares_owned": shares_owned,
-            "chart_data": chart_data
-        }
+        try:
+            # Get current price and chart data for the selected stock
+            price = self.model.get_current_price(symbol)
+            chart_data = self.model.get_stock_history(symbol)
+            
+            # Debug output
+            print(f"Retrieved price for {symbol}: {price}")
+            print(f"Retrieved chart data for {symbol}: {chart_data[:5] if chart_data else 'None'}")
+            
+            return {
+                "symbol": symbol,
+                "price": price,
+                "shares_owned": shares_owned,
+                "chart_data": chart_data
+            }
+        except Exception as e:
+            print(f"Error in _select_stock_worker: {str(e)}")
+            return {
+                "symbol": symbol,
+                "price": 0.0,
+                "shares_owned": shares_owned,
+                "chart_data": []
+            }
     
     def _stock_selection_completed(self, result):
         """Handle stock selection result from worker thread"""

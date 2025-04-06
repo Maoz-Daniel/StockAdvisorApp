@@ -2,7 +2,7 @@ from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QLabel, QFrame, QPushButton, 
     QGraphicsDropShadowEffect, QLineEdit, QSpinBox, QComboBox, QApplication,
     QScrollArea, QSizePolicy, QHBoxLayout, QStatusBar, QMessageBox, QDialog,
-    QCompleter, QProgressBar, QTextEdit, QListWidget, QListWidgetItem,QMenu
+    QCompleter, QProgressBar, QTextEdit, QListWidget, QListWidgetItem,QMenu,QGridLayout
 )
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtCore import Qt, QSize, QDate, QMargins, QDateTime, QTimer,QByteArray
@@ -149,7 +149,7 @@ class SellOrderWindow(QMainWindow):
         
         # Portfolio List
         self.portfolio_list = QListWidget()
-        self.portfolio_list.setMinimumHeight(200)
+        self.portfolio_list.setMinimumHeight(300)
         self.portfolio_list.currentItemChanged.connect(self.on_portfolio_item_selected)
         portfolio_layout.addWidget(self.portfolio_list)
         
@@ -163,7 +163,10 @@ class SellOrderWindow(QMainWindow):
         self.success_message.setObjectName("success-message")
         self.success_message.setVisible(False)
         portfolio_layout.addWidget(self.success_message)
-        
+
+                
+        portfolio_layout.setContentsMargins(20, 20, 20, 20)
+        portfolio_layout.setSpacing(15)
         self.main_layout.addWidget(portfolio_section)
         
         # Chart section
@@ -203,13 +206,171 @@ class SellOrderWindow(QMainWindow):
         self.form_frame.setObjectName("card")
         self.form_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         form_layout = QVBoxLayout(self.form_frame)
-        form_layout.setSpacing(18)
-        form_layout.setContentsMargins(20, 20, 20, 20)
+        form_layout.setSpacing(20)
+        form_layout.setContentsMargins(25, 25, 25, 25)
 
-        # Form title
-        form_title = QLabel("Sell Order Details")
+        # Main title
+        form_title = QLabel("Sell Shares")
         form_title.setObjectName("section-title")
+        form_title.setStyleSheet("font-size: 20px; font-weight: bold; margin-bottom: 5px;")
         form_layout.addWidget(form_title)
+
+        # Subtitle
+        sell_subtitle = QLabel("Enter the number of shares you want to sell")
+        sell_subtitle.setStyleSheet("color: #666; margin-bottom: 15px;")
+        form_layout.addWidget(sell_subtitle)
+
+        # Create a grid layout for the stock information
+        info_grid = QGridLayout()
+        info_grid.setVerticalSpacing(15)
+        info_grid.setHorizontalSpacing(20)
+        info_grid.setColumnStretch(0, 1)  # Left labels column
+        info_grid.setColumnStretch(1, 2)  # Right values column
+
+        # Row 1: Selected Stock
+        stock_label = QLabel("Selected Stock")
+        stock_label.setStyleSheet("font-weight: medium;")
+        self.stock_display = QLabel("None")
+        self.stock_display.setStyleSheet("font-weight: bold; font-size: 15px;")
+        info_grid.addWidget(stock_label, 0, 0)
+        info_grid.addWidget(self.stock_display, 0, 1)
+
+        # Row 2: Current Price
+        price_label = QLabel("Current Price")
+        price_label.setStyleSheet("font-weight: medium;")
+        self.price_display = QLabel("$0.00")
+        self.price_display.setStyleSheet("font-weight: bold; font-size: 15px; color: #10b981;")
+        info_grid.addWidget(price_label, 1, 0)
+        info_grid.addWidget(self.price_display, 1, 1)
+
+        # Row 3: Shares Owned
+        owned_label = QLabel("Shares Owned")
+        owned_label.setStyleSheet("font-weight: medium;")
+        self.shares_owned_label = QLabel("0")
+        self.shares_owned_label.setStyleSheet("font-weight: bold; font-size: 15px;")
+        info_grid.addWidget(owned_label, 2, 0)
+        info_grid.addWidget(self.shares_owned_label, 2, 1)
+
+        # Row 4: Shares to Sell with input control
+        sell_label = QLabel("Shares to Sell")
+        sell_label.setStyleSheet("font-weight: medium;")
+
+        # Create a horizontal layout for the quantity input and Max button
+        quantity_layout = QHBoxLayout()
+        self.quantity_input = QSpinBox()
+        self.quantity_input.setRange(1, 1000)
+        self.quantity_input.setObjectName("quantity-spinner")
+        self.quantity_input.setStyleSheet("""
+            QSpinBox {
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                padding: 8px;
+                font-size: 14px;
+                background: white;
+                height: 38px;
+            }
+            QSpinBox::up-button, QSpinBox::down-button {
+                width: 20px;
+            }
+        """)
+        self.quantity_input.valueChanged.connect(self.update_total_value)
+
+        # Add Max button
+        self.max_button = QPushButton("Max")
+        self.max_button.setCursor(Qt.PointingHandCursor)
+        self.max_button.setFixedWidth(80)
+        self.max_button.setStyleSheet("""
+            QPushButton {
+                background-color: #f8f9fa;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                padding: 8px 15px;
+                font-weight: 500;
+                height: 38px;
+            }
+            QPushButton:hover {
+                background-color: #e9ecef;
+            }
+        """)
+        self.max_button.clicked.connect(self.set_max_quantity)
+
+        quantity_layout.addWidget(self.quantity_input)
+        quantity_layout.addWidget(self.max_button)
+        quantity_layout.setStretch(0, 3)  # Give more space to the spinner
+        quantity_layout.setStretch(1, 1)  # Less space for the button
+
+        info_grid.addWidget(sell_label, 3, 0)
+        info_grid.addLayout(quantity_layout, 3, 1)
+
+        # Row 5: Total Value
+        total_label = QLabel("Total Value")
+        total_label.setStyleSheet("font-weight: medium;")
+        self.total_value_label = QLabel("$0.00")
+        self.total_value_label.setStyleSheet("font-weight: bold; font-size: 18px; color: #10b981;")
+        info_grid.addWidget(total_label, 4, 0)
+        info_grid.addWidget(self.total_value_label, 4, 1)
+
+        # Add the grid to the form layout
+        form_layout.addLayout(info_grid)
+
+        # Add spacer
+        form_layout.addSpacing(15)
+
+        # Sell button - replace the existing buttons section
+        self.sell_button = QPushButton("Sell Shares")
+        self.sell_button.setObjectName("sell-button")
+        self.sell_button.setCursor(Qt.PointingHandCursor)
+        self.sell_button.setMinimumHeight(50)
+        self.sell_button.setStyleSheet("""
+            QPushButton {
+                background-color: #111827;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 12px;
+                font-size: 16px;
+                font-weight: 500;
+            }
+            QPushButton:hover {
+                background-color: #1f2937;
+            }
+            QPushButton:pressed {
+                background-color: #111827;
+            }
+        """)
+        self.sell_button.clicked.connect(self.confirm_sell)
+
+        # Preview button
+        self.preview_button = QPushButton("Preview Sale")
+        self.preview_button.setCursor(Qt.PointingHandCursor)
+        self.preview_button.setMinimumHeight(50)
+        self.preview_button.setStyleSheet("""
+            QPushButton {
+                background-color: #f3f4f6;
+                color: #111827;
+                border: 1px solid #d1d5db;
+                border-radius: 6px;
+                padding: 12px;
+                font-size: 16px;
+                font-weight: 500;
+            }
+            QPushButton:hover {
+                background-color: #e5e7eb;
+            }
+        """)
+        self.preview_button.clicked.connect(self.preview_order)
+
+        # Create buttons layout
+        buttons_layout = QHBoxLayout()
+        buttons_layout.addWidget(self.preview_button)
+        buttons_layout.addWidget(self.sell_button)
+        form_layout.addLayout(buttons_layout)
+
+        self.main_layout.addWidget(self.form_frame)
+
+        # Initially disable sell buttons until a stock is selected
+        self.preview_button.setEnabled(False)
+        self.sell_button.setEnabled(False)
 
         # Create a helper function for form rows
         def create_form_row(label_text, input_widget):
@@ -228,55 +389,9 @@ class SellOrderWindow(QMainWindow):
             row_layout.addWidget(input_widget)
             
             return row_widget
-
-        # Form elements
-        self.stock_display = QLabel("Selected Stock: None")
-        self.stock_display.setObjectName("value-text")
-        
-        self.shares_owned_label = QLabel("Shares Owned: 0")
-        self.shares_owned_label.setObjectName("accent-text")
-        
-        self.quantity_input = QSpinBox()
-        self.quantity_input.setObjectName("quantity-spinner")
-        self.quantity_input.setRange(1, 1000)
-        quantity_row = create_form_row("Enter Quantity to Sell:", self.quantity_input)
-        
-        # Stock price display (read-only)
-        self.price_display = QLabel("Current Price: $0.00")
-        self.price_display.setObjectName("accent-text")
-        
-        # Add all elements to form layout
-        form_layout.addWidget(self.stock_display)
-        form_layout.addWidget(self.shares_owned_label)
-        form_layout.addWidget(quantity_row)
-        form_layout.addWidget(self.price_display)
         
         self.main_layout.addWidget(self.form_frame)
 
-        # Buttons section
-        buttons_container = QWidget()
-        buttons_layout = QHBoxLayout(buttons_container)
-        buttons_layout.setContentsMargins(0, 10, 0, 10)
-        
-        self.preview_button = QPushButton("👁️ Preview Sale")
-        self.preview_button.setCursor(Qt.PointingHandCursor)
-        self.preview_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.preview_button.clicked.connect(self.preview_order)
-        
-        self.sell_button = QPushButton("✅ Confirm Sell Order")
-        self.sell_button.setObjectName("highlight-button")
-        self.sell_button.setCursor(Qt.PointingHandCursor)
-        self.sell_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.sell_button.clicked.connect(self.confirm_sell)
-        
-        buttons_layout.addStretch()
-        buttons_layout.addWidget(self.preview_button)
-        buttons_layout.addSpacing(15)
-        buttons_layout.addWidget(self.sell_button)
-        buttons_layout.addStretch()
-        
-        self.main_layout.addWidget(buttons_container)
-        
         # Add a spacer at the bottom
         bottom_spacer = QWidget()
         bottom_spacer.setMinimumHeight(20)
@@ -303,6 +418,28 @@ class SellOrderWindow(QMainWindow):
         self.loading_timer = QTimer(self)
         self.loading_timer.timeout.connect(self.update_loading_message)
 
+    def update_total_value(self):
+        """Update the total value based on quantity"""
+        try:
+            quantity = self.quantity_input.value()
+            # Make sure to handle the new format of price text
+            price_text = self.price_display.text().replace("$", "")
+            price = float(price_text) if price_text and price_text != "0.00" else 0
+            
+            total = quantity * price
+            self.total_value_label.setText(f"${total:.2f}")
+        except (ValueError, AttributeError) as e:
+            print(f"Error updating total value: {e}")
+            self.total_value_label.setText("$0.00")
+
+    def set_max_quantity(self):
+        """Set the quantity to the maximum shares owned"""
+        try:
+            shares_text = self.shares_owned_label.text().replace("Shares Owned: ", "")
+            shares_owned = int(shares_text)
+            self.quantity_input.setValue(shares_owned)
+        except (ValueError, AttributeError):
+            pass
 
     def create_header_bar(self):
         """Create a visible header bar with logo and navigation buttons"""
@@ -460,7 +597,7 @@ class SellOrderWindow(QMainWindow):
         )
     
     def update_portfolio_list(self, portfolio_data):
-        """Update the portfolio list with user's stock holdings"""
+        """Update the portfolio list with user's stock holdings in a modern, professional table format"""
         self.portfolio_list.clear()
         
         if not portfolio_data:
@@ -470,21 +607,159 @@ class SellOrderWindow(QMainWindow):
             self.portfolio_list.addItem(no_stocks_item)
             return
         
+        # Create a styled header item with theme-matching color and rounded corners
+        header_item = QListWidgetItem()
+        header_widget = QWidget()
+        # Use a gradient background with rounded top corners
+        header_widget.setStyleSheet("""
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                    stop:0 #2c3e50, stop:1 #1e293b);
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+            color: white;
+        """)
+        
+        # Use a grid layout instead of horizontal layout to better control space
+        header_layout = QGridLayout(header_widget)
+        header_layout.setContentsMargins(15, 10, 15, 10)
+        header_layout.setHorizontalSpacing(10)  # Space between columns
+        
+        # Define column percentages for proper spacing
+        symbol_label = QLabel("Symbol")
+        symbol_label.setStyleSheet("font-weight: bold; color: white; font-size: 14px;")
+        
+        quantity_label = QLabel("Quantity")
+        quantity_label.setAlignment(Qt.AlignCenter)
+        quantity_label.setStyleSheet("font-weight: bold; color: white; font-size: 14px;")
+        
+        price_label = QLabel("Current Price")
+        price_label.setAlignment(Qt.AlignRight)
+        price_label.setStyleSheet("font-weight: bold; color: white; font-size: 14px;")
+        
+        value_label = QLabel("Value")
+        value_label.setAlignment(Qt.AlignRight)
+        value_label.setStyleSheet("font-weight: bold; color: white; font-size: 14px;")
+        
+        # Add header labels using grid layout with specific column stretches
+        header_layout.addWidget(symbol_label, 0, 0)
+        header_layout.addWidget(quantity_label, 0, 1)
+        header_layout.addWidget(price_label, 0, 2)
+        header_layout.addWidget(value_label, 0, 3)
+        
+        # Set column stretches - adjust these numbers to control width distribution
+        header_layout.setColumnStretch(0, 30)  # Symbol
+        header_layout.setColumnStretch(1, 20)  # Quantity
+        header_layout.setColumnStretch(2, 25)  # Price
+        header_layout.setColumnStretch(3, 25)  # Value
+        
+        # Set header widget with fixed height
+        header_widget.setFixedHeight(45)
+        header_item.setSizeHint(QSize(self.portfolio_list.width(), 45))
+        self.portfolio_list.addItem(header_item)
+        self.portfolio_list.setItemWidget(header_item, header_widget)
+        
         # Format and add each portfolio item
-        for item in portfolio_data:
+        for index, item in enumerate(portfolio_data):
             symbol = item["symbol"]
             shares = item["shares"]
             price = item["current_price"]
             total_value = item["total_value"]
             
-            # Create formatted display text
-            display_text = f"{symbol} - {shares} shares | Current: ${price:.2f} | Value: ${total_value:.2f}"
+            # Create list item
+            list_item = QListWidgetItem()
+            item_widget = QWidget()
             
-            # Create and add list item
-            list_item = QListWidgetItem(display_text)
-            # Store the stock symbol and shares as data with the item
+            # Apply more distinct alternating row colors
+            if index % 2 == 0:
+                item_widget.setStyleSheet("""
+                    background-color: #f8fafc;
+                    border-left: 1px solid #e2e8f0;
+                    border-right: 1px solid #e2e8f0;
+                """)
+            else:
+                item_widget.setStyleSheet("""
+                    background-color: white;
+                    border-left: 1px solid #e2e8f0;
+                    border-right: 1px solid #e2e8f0;
+                """)
+                    
+            # Use grid layout for content row as well
+            item_layout = QGridLayout(item_widget)
+            item_layout.setContentsMargins(15, 5, 15, 5)
+            item_layout.setHorizontalSpacing(10)
+            
+            # Create styled content labels
+            symbol_content = QLabel(symbol)
+            symbol_content.setStyleSheet("font-weight: bold; font-size: 14px; color: #1e293b;")
+            
+            quantity_content = QLabel(str(shares))
+            quantity_content.setAlignment(Qt.AlignCenter)
+            quantity_content.setStyleSheet("font-size: 14px; color: #1e293b;")
+            
+            price_content = QLabel(f"${price:.2f}")
+            price_content.setAlignment(Qt.AlignRight)
+            price_content.setStyleSheet("font-size: 14px; color: #1e293b;")
+            
+            value_content = QLabel(f"${total_value:.2f}")
+            value_content.setAlignment(Qt.AlignRight)
+            value_content.setStyleSheet("font-weight: bold; font-size: 14px; color: #10b981;")  # Bright green for value
+            
+            # Add content to layout using the same grid positions and stretches
+            item_layout.addWidget(symbol_content, 0, 0)
+            item_layout.addWidget(quantity_content, 0, 1)
+            item_layout.addWidget(price_content, 0, 2)
+            item_layout.addWidget(value_content, 0, 3)
+            
+            # Apply the same column stretches as the header
+            item_layout.setColumnStretch(0, 30)  # Symbol
+            item_layout.setColumnStretch(1, 20)  # Quantity
+            item_layout.setColumnStretch(2, 25)  # Price
+            item_layout.setColumnStretch(3, 25)  # Value
+            
+            # Set fixed row height for consistent appearance
+            item_widget.setFixedHeight(45)
+            
+            # Set item widget and store data
+            list_item.setSizeHint(QSize(self.portfolio_list.width(), 45))
             list_item.setData(Qt.UserRole, {"symbol": symbol, "shares": shares})
             self.portfolio_list.addItem(list_item)
+            self.portfolio_list.setItemWidget(list_item, item_widget)
+            
+            # Last item needs a bottom border and rounded corners
+            if item == portfolio_data[-1]:
+                item_widget.setStyleSheet(item_widget.styleSheet() + """
+                    border-bottom: 1px solid #e2e8f0; 
+                    border-bottom-left-radius: 8px; 
+                    border-bottom-right-radius: 8px;
+                """)
+        
+        # Add some styling to the list widget
+        self.portfolio_list.setStyleSheet("""
+            QListWidget {
+                background-color: transparent;
+                border: none;
+                border-radius: 8px;
+                padding: 0px;
+            }
+            QListWidget::item {
+                padding: 0px;
+                border: none;
+            }
+            QListWidget::item:selected {
+                background-color: rgba(59, 130, 246, 0.1);
+                border: none;
+            }
+            QListWidget::item:hover {
+                background-color: rgba(59, 130, 246, 0.05);
+            }
+        """)
+        
+        # Add a subtle shadow to the entire widget for depth
+        shadow = QGraphicsDropShadowEffect(self.portfolio_list)
+        shadow.setBlurRadius(15)
+        shadow.setColor(QColor(0, 0, 0, 30))  # Transparent black
+        shadow.setOffset(0, 2)
+        self.portfolio_list.setGraphicsEffect(shadow)
         
         self.status_bar.showMessage("Portfolio loaded successfully")
     
@@ -510,13 +785,22 @@ class SellOrderWindow(QMainWindow):
     
     def update_shares_owned(self, shares):
         """Update the shares owned display"""
-        self.shares_owned_label.setText(f"Shares Owned: {shares}")
+        # Update the new shares_owned_label in the grid layout
+        self.shares_owned_label.setText(f"{shares}")
+        
         # Update the quantity spinner
         self.quantity_input.setMaximum(shares)
+        self.quantity_input.setValue(1)  # Set a default value of 1
+        
         if shares > 0:
             self.quantity_input.setEnabled(True)
+            self.max_button.setEnabled(True)
         else:
             self.quantity_input.setEnabled(False)
+            self.max_button.setEnabled(False)
+        
+        # Update total value immediately
+        self.update_total_value()
     
     def set_loading_state(self, is_loading, message=None):
         """Set the UI to loading state when waiting for API response"""
@@ -566,9 +850,9 @@ class SellOrderWindow(QMainWindow):
 
     def stock_selected(self, symbol, price, chart_data):
         """Handle successful stock selection"""
-        # Update UI elements
-        self.stock_display.setText(f"Selected Stock: {symbol}")
-        self.price_display.setText(f"Current Price: ${price:.2f}")
+        # Update UI elements in the new format
+        self.stock_display.setText(f"{symbol}")
+        self.price_display.setText(f"${price:.2f}")
         
         # Show success message
         self.show_success(f"Selected: {symbol}")
@@ -583,7 +867,10 @@ class SellOrderWindow(QMainWindow):
         
         # Update chart with the data
         self.update_stock_chart(symbol, chart_data)
-    
+        
+        # Update total value
+        self.update_total_value()
+        
     def display_order_preview(self, preview_info):
         """Display order preview dialog"""
         preview_dialog = OrderPreviewDialog(preview_info, self)
@@ -591,7 +878,7 @@ class SellOrderWindow(QMainWindow):
 
     def preview_order(self):
         """Preview the sell order"""
-        stock = self.stock_display.text().replace("Selected Stock: ", "")
+        stock = self.stock_display.text()
         quantity = self.quantity_input.value()
         
         if stock == "None":
@@ -602,7 +889,7 @@ class SellOrderWindow(QMainWindow):
 
     def confirm_sell(self):
         """Execute the sell order"""
-        stock = self.stock_display.text().replace("Selected Stock: ", "")
+        stock = self.stock_display.text()
         quantity = self.quantity_input.value()
         
         if stock == "None":
@@ -637,7 +924,7 @@ class SellOrderWindow(QMainWindow):
         chart = QChart()
         chart.setTitle(f"{stock_symbol} - 52 Week History")
         chart.setTitleFont(QFont("SF Pro Display", 12, QFont.Bold))
-        chart.setTitleBrush(QColor(FaceID6Theme.PRIMARY_COLOR))  # Use theme color
+        chart.setTitleBrush(QColor(FaceID6Theme.PRIMARY_COLOR))
         chart.setBackgroundVisible(False)
         chart.setAnimationOptions(QChart.SeriesAnimations)
         
@@ -645,46 +932,66 @@ class SellOrderWindow(QMainWindow):
         series = QLineSeries()
         series.setName(f"{stock_symbol} Price")
         
-        # Add data points
-        for date_timestamp, price in chart_data:
-            series.append(date_timestamp, price)
+        # Debug chart data
+        print(f"Chart data for {stock_symbol}: {chart_data[:5] if chart_data else 'None'}")
         
-        # Style the line with theme color
-        pen = QPen(QColor(FaceID6Theme.PRIMARY_COLOR))
-        pen.setWidth(3)
-        series.setPen(pen)
-        
-        chart.addSeries(series)
-        
-        # Set up axes
-        date_axis = QDateTimeAxis()
-        date_axis.setFormat("MMM yyyy")
-        date_axis.setTitleText("Date")
-        date_axis.setTitleFont(QFont("SF Pro Display", 10))
-        date_axis.setLabelsColor(QColor(FaceID6Theme.TEXT_SECONDARY))  # Use theme color
-        date_axis.setGridLineVisible(True)
-        date_axis.setGridLineColor(QColor("#E5E5EA"))  # Light grid lines
-        
-        value_axis = QValueAxis()
-        value_axis.setTitleText("Price ($)")
-        value_axis.setTitleFont(QFont("SF Pro Display", 10))
-        value_axis.setLabelsColor(QColor(FaceID6Theme.TEXT_SECONDARY))  # Use theme color
-        value_axis.setGridLineVisible(True)
-        value_axis.setGridLineColor(QColor("#E5E5EA"))  # Light grid lines
-        
-        # Calculate appropriate axis ranges
-        if chart_data:
-            min_x = min(date for date, _ in chart_data)
-            max_x = max(date for date, _ in chart_data)
-            min_y = min(price for _, price in chart_data)
-            max_y = max(price for _, price in chart_data)
-            
-            # Add padding to y-axis
-            y_padding = (max_y - min_y) * 0.1
-            value_axis.setRange(min_y - y_padding, max_y + y_padding)
-            date_axis.setRange(QDateTime.fromMSecsSinceEpoch(min_x), QDateTime.fromMSecsSinceEpoch(max_x))
-        
-        chart.addAxis(date_axis, Qt.AlignBottom)
-        chart.addAxis(value_axis, Qt.AlignLeft)
-        series.attachAxis(date_axis)
-        series.attachAxis(value_axis)
+        # Add data points if chart_data exists and has the expected format
+        if chart_data and len(chart_data) > 0:
+            try:
+                for date_timestamp, price in chart_data:
+                    series.append(date_timestamp, price)
+                    
+                # Style the line with theme color
+                pen = QPen(QColor(FaceID6Theme.PRIMARY_COLOR))
+                pen.setWidth(3)
+                series.setPen(pen)
+                
+                chart.addSeries(series)
+                
+                # Set up axes
+                date_axis = QDateTimeAxis()
+                date_axis.setFormat("MMM yyyy")
+                date_axis.setTitleText("Date")
+                date_axis.setTitleFont(QFont("SF Pro Display", 10))
+                date_axis.setLabelsColor(QColor(FaceID6Theme.TEXT_SECONDARY))
+                date_axis.setGridLineVisible(True)
+                date_axis.setGridLineColor(QColor("#E5E5EA"))
+                
+                value_axis = QValueAxis()
+                value_axis.setTitleText("Price ($)")
+                value_axis.setTitleFont(QFont("SF Pro Display", 10))
+                value_axis.setLabelsColor(QColor(FaceID6Theme.TEXT_SECONDARY))
+                value_axis.setGridLineVisible(True)
+                value_axis.setGridLineColor(QColor("#E5E5EA"))
+                
+                # Calculate appropriate axis ranges
+                min_x = min(date for date, _ in chart_data)
+                max_x = max(date for date, _ in chart_data)
+                min_y = min(price for _, price in chart_data)
+                max_y = max(price for _, price in chart_data)
+                
+                # Add padding to y-axis
+                y_padding = (max_y - min_y) * 0.1
+                value_axis.setRange(min_y - y_padding, max_y + y_padding)
+                date_axis.setRange(QDateTime.fromMSecsSinceEpoch(min_x), QDateTime.fromMSecsSinceEpoch(max_x))
+                
+                chart.addAxis(date_axis, Qt.AlignBottom)
+                chart.addAxis(value_axis, Qt.AlignLeft)
+                series.attachAxis(date_axis)
+                series.attachAxis(value_axis)
+                
+                self.chart_view.setChart(chart)
+                print(f"Chart updated successfully for {stock_symbol}")
+            except Exception as e:
+                print(f"Error creating chart: {str(e)}")
+                # Set an empty chart with an error message
+                error_chart = QChart()
+                error_chart.setTitle(f"Error loading chart for {stock_symbol}")
+                error_chart.setBackgroundVisible(False)
+                self.chart_view.setChart(error_chart)
+        else:
+            # If no chart data available, show an empty chart
+            empty_chart = QChart()
+            empty_chart.setTitle(f"No historical data for {stock_symbol}")
+            empty_chart.setBackgroundVisible(False)
+            self.chart_view.setChart(empty_chart)

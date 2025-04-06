@@ -162,23 +162,3 @@ class BuyOrderPresenter(QObject):
                 "company_name": company_name,
                 "error_message": error_message or "Stock not found"
             }
-
-    # def on_search_complete(self, result):
-    #     """Handle the completion of a search operation"""
-    #     print("Search complete, result:", result["success"])
-        
-    #     if result["success"]:
-    #         symbol = result["symbol"]
-    #         price = result["price"]
-    #         chart_data = result["chart_data"]
-    #         profile = result.get("profile", {})
-    #         description = result.get("description", "")
-            
-    #         print(f"Calling display_stock_info for {symbol}")
-    #         print(f"Profile data: {profile}")
-    #         print(f"Description: {description[:50] if description else 'None'}")
-            
-    #         # Use the new display_stock_info method
-    #         self.view.display_stock_info(symbol, price, chart_data, profile, description)
-    #     else:
-    #         self.view.show_error(result["error_message"])

@@ -160,12 +160,12 @@ class BuyOrderWindow(QMainWindow):
         self.header_frame = QFrame()
         self.header_frame.setObjectName("header-frame")
         self.header_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.header_frame.setMinimumHeight(140)
+        self.header_frame.setMinimumHeight(80)
         
         header_layout = QVBoxLayout(self.header_frame)
         header_layout.setContentsMargins(20, 10, 20, 10)
 
-        title_label = QLabel("📈 Buy Stock")
+        title_label = QLabel(" Buy Stock")
         title_label.setObjectName("welcome-label")
         title_label.setAlignment(Qt.AlignCenter)
 
@@ -352,16 +352,42 @@ class BuyOrderWindow(QMainWindow):
         buttons_layout = QHBoxLayout(buttons_container)
         buttons_layout.setContentsMargins(0, 10, 0, 10)
         
-        self.preview_button = QPushButton("👁️ Preview Order")
+        self.preview_button = QPushButton("Preview Order")  
+        preview_svg_data = """<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="#37506D" version="1.1" id="Layer_1" width="800px" height="800px" viewBox="0 0 92 92" enable-background="new 0 0 92 92" xml:space="preserve">
+        <path id="XMLID_1239_" d="M91.3,43.8C90.6,42.8,74.4,19,46,19C17.6,19,1.4,42.8,0.7,43.8c-0.9,1.3-0.9,3.1,0,4.5  C1.4,49.2,17.6,73,46,73c28.4,0,44.6-23.8,45.3-24.8C92.2,46.9,92.2,45.1,91.3,43.8z M46,65C26.7,65,13.5,51.4,9,46  c4.5-5.5,17.6-19,37-19c19.3,0,32.5,13.6,37,19C78.4,51.5,65.3,65,46,65z M48.3,29.6c-4.4-0.6-8.7,0.5-12.3,3.2c0,0,0,0,0,0  c-7.3,5.5-8.8,15.9-3.3,23.2c2.7,3.6,6.5,5.8,10.9,6.5c0.8,0.1,1.6,0.2,2.3,0.2c3.6,0,7-1.2,9.9-3.3c7.3-5.5,8.8-15.9,3.3-23.2  C56.6,32.5,52.7,30.2,48.3,29.6z M52.3,54.5c-2.2,1.7-5,2.4-7.8,2c-2.8-0.4-5.3-1.9-7-4.1C34.1,47.7,35,41,39.7,37.5  c2.2-1.7,5-2.4,7.8-2c2.8,0.4,5.3,1.9,7,4.1C57.9,44.3,57,51,52.3,54.5z M51.9,40c0.8,0.7,1.2,1.8,1.2,2.8c0,1-0.4,2.1-1.2,2.8  c-0.7,0.7-1.8,1.2-2.8,1.2c-1.1,0-2.1-0.4-2.8-1.2c-0.8-0.8-1.2-1.8-1.2-2.8c0-1.1,0.4-2.1,1.2-2.8c0.7-0.8,1.8-1.2,2.8-1.2  C50.2,38.9,51.2,39.3,51.9,40z"/>
+        </svg>"""
+        preview_svg_data = preview_svg_data.replace('<path', '<path style="fill:#37506D;"')
+        renderer = QSvgRenderer(QByteArray(preview_svg_data.encode()))
+        pixmap = QPixmap(24, 24)
+        pixmap.fill(Qt.transparent)
+        painter = QPainter(pixmap)
+        renderer.render(painter)
+        painter.end()
+        preview_icon = QIcon(pixmap)
+
+        self.preview_button.setIcon(preview_icon)
+        self.preview_button.setIconSize(QSize(24, 24))
         self.preview_button.setCursor(Qt.PointingHandCursor)
         self.preview_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.preview_button.clicked.connect(self.preview_order)
-        
-        self.buy_button = QPushButton("✅ Confirm Buy Order")
+
+        self.buy_button = QPushButton(" Confirm Buy Order")
+        confirm_svg_data = """<svg xmlns="http://www.w3.org/2000/svg" width="800px" height="800px" viewBox="0 0 1024 1024" class="icon" version="1.1"><path d="M511.64164 924.327835c-228.816869 0-414.989937-186.16283-414.989937-414.989937S282.825796 94.347961 511.64164 94.347961c102.396724 0 200.763434 37.621642 276.975315 105.931176 9.47913 8.499272 10.266498 23.077351 1.755963 32.556481-8.488009 9.501656-23.054826 10.266498-32.556481 1.778489-67.723871-60.721519-155.148319-94.156494-246.174797-94.156494-203.396868 0-368.880285 165.482394-368.880285 368.880285S308.243749 878.218184 511.64164 878.218184c199.164126 0 361.089542-155.779033 368.60998-354.639065 0.49556-12.720751 11.032364-22.863359 23.910794-22.177356 12.720751 0.484298 22.649367 11.190043 22.15483 23.910794-8.465484 223.74966-190.609564 399.015278-414.675604 399.015278z" fill="#22C67F"/><path d="M960.926616 327.538868l-65.210232-65.209209-350.956149 350.956149-244.56832-244.566273-65.210233 65.209209 309.745789 309.743741 0.032764-0.031741 0.03174 0.031741z" fill="#74E8AE"/></svg>"""
+        renderer = QSvgRenderer(QByteArray(confirm_svg_data.encode()))
+        pixmap = QPixmap(24, 24)
+        pixmap.fill(Qt.transparent)
+        painter = QPainter(pixmap)
+        renderer.render(painter)
+        painter.end()
+        buy_icon = QIcon(pixmap)
         self.buy_button.setObjectName("highlight-button")
         self.buy_button.setCursor(Qt.PointingHandCursor)
         self.buy_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.buy_button.setIconSize(QSize(24, 24))
+        self.buy_button.setIcon(buy_icon) 
+
         self.buy_button.clicked.connect(self.confirm_buy)
+
         
         buttons_layout.addStretch()
         buttons_layout.addWidget(self.preview_button)
@@ -857,41 +883,67 @@ class BuyOrderWindow(QMainWindow):
             details_grid.setVerticalSpacing(10)
             details_grid.setHorizontalSpacing(20)
             
-            details_grid.addWidget(QLabel("Industry:"), 0, 0)
-            details_grid.addWidget(QLabel(profile.get("industry", "N/A")), 0, 1)
-            details_grid.addWidget(QLabel("Exchange:"), 0, 2)
-            details_grid.addWidget(QLabel(profile.get("exchange", "N/A")), 0, 3)
-            
-            details_grid.addWidget(QLabel("Country:"), 1, 0)
-            details_grid.addWidget(QLabel(profile.get("country", "N/A")), 1, 1)
-            details_grid.addWidget(QLabel("Website:"), 1, 2)
-            web_label = QLabel(profile.get("webUrl", "N/A"))
-            web_label.setStyleSheet("color: blue; text-decoration: underline;")
-            details_grid.addWidget(web_label, 1, 3)
-            
-            # Description
+            # Industry Row
+            industry_label = QLabel("Industry:")
+            industry_label.setStyleSheet(f"color: {self.theme.ACCENT_COLOR}; font-weight: bold; font-size: 14px;")
+            details_grid.addWidget(industry_label, 0, 0)
+
+            industry_value = QLabel(profile.get("industry", "N/A"))
+            industry_value.setStyleSheet(f"color: {self.theme.TEXT_PRIMARY}; font-size: 14px;")
+            details_grid.addWidget(industry_value, 0, 1)
+
+            # Exchange Row
+            exchange_label = QLabel("Exchange:")
+            exchange_label.setStyleSheet(f"color: {self.theme.ACCENT_COLOR}; font-weight: bold; font-size: 14px;")
+            details_grid.addWidget(exchange_label, 0, 2)
+
+            exchange_value = QLabel(profile.get("exchange", "N/A"))
+            exchange_value.setStyleSheet(f"color: {self.theme.TEXT_PRIMARY}; font-size: 14px;")
+            details_grid.addWidget(exchange_value, 0, 3)
+
+            # Country Row
+            country_label = QLabel("Country:")
+            country_label.setStyleSheet(f"color: {self.theme.ACCENT_COLOR}; font-weight: bold; font-size: 14px;")
+            details_grid.addWidget(country_label, 1, 0)
+
+            country_value = QLabel(profile.get("country", "N/A"))
+            country_value.setStyleSheet(f"color: {self.theme.TEXT_PRIMARY}; font-size: 14px;")
+            details_grid.addWidget(country_value, 1, 1)
+
+            # Website Row
+            website_label = QLabel("Website:")
+            website_label.setStyleSheet(f"color: {self.theme.ACCENT_COLOR}; font-weight: bold; font-size: 14px;")
+            details_grid.addWidget(website_label, 1, 2)
+
+            web_value = QLabel(profile.get("webUrl", "N/A"))
+            # ניתן להתאים את הצבע והעיצוב לפי עיצוב הקוד (כאן נותר עם blue עם underline)
+            web_value.setStyleSheet("color: blue; text-decoration: underline; font-size: 14px;")
+            details_grid.addWidget(web_value, 1, 3)
+
+            # Description Section
             desc_label = QLabel("Company Description")
-            desc_label.setStyleSheet("font-size: 16px; font-weight: bold; margin-top: 15px;")
-            
+            desc_label.setStyleSheet(f"color: {self.theme.ACCENT_COLOR}; font-weight: bold; font-size: 16px; margin-top: 15px;")
+            company_layout.addLayout(header_layout)
+            company_layout.addSpacing(5)
+            company_layout.addLayout(details_grid)
+            company_layout.addWidget(desc_label)
+
             desc_text = QTextEdit()
             desc_text.setReadOnly(True)
             desc_text.setMinimumHeight(100)
             desc_text.setMaximumHeight(150)
             desc_text.setText(description)
             desc_text.setStyleSheet("""
-                background-color: #F8F9FA;
-                border: 1px solid #E5E5EA;
-                border-radius: 6px;
-                padding: 10px;
-            """)
-            
-            # Add all elements to company info layout
-            company_layout.addLayout(header_layout)
-            company_layout.addSpacing(15)
-            company_layout.addLayout(details_grid)
-            company_layout.addWidget(desc_label)
+            background-color: #F8F9FA;
+            border: 1px solid #E5E5EA;
+            border-radius: 6px;
+            padding: 10px;
+            font-family: 'SF Pro Display', 'Segoe UI', sans-serif;
+            font-size: 14px;
+        """)
+
             company_layout.addWidget(desc_text)
-            
+
             return company_info
     
     def update_stock_chart(self, stock_symbol, chart_data):
