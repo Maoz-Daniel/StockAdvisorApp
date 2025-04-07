@@ -30,37 +30,36 @@ class MainView(QMainWindow):
     def __init__(self, username, model, parent=None):
         super().__init__()
         
-        # Apply theme first
-        self.setStyleSheet(FaceID6Theme.STYLE_SHEET)
-
         self.username = username
         self.model = model
+        self.presenter= None
 
         self.setWindowTitle(f"SmartInvest Pro - {username}")
-
-        # Connect the Presenter
-        self.presenter = MainPresenter(self, model)
+        self.setStyleSheet(FaceID6Theme.STYLE_SHEET)
 
         # Set window size
         screen = QApplication.primaryScreen()
         screen_size = screen.size()
         self.resize(int(screen_size.width() * 0.85), int(screen_size.height() * 0.85))
 
-        # Create header bar early
-        self.create_header_bar()
-
-        # Setup layouts and other components
         self.setup_main_layout()
-        # self.setup_menu_bar()
         self.create_header()
-        self.create_action_buttons()
+        # self.create_action_buttons()
+        self.create_action_buttons_without_connections()  # Modified version
         self.create_portfolio_view()
         self.create_market_overview()
         self.setup_status_bar()
 
+        # Connect the Presenter
+        self.presenter = MainPresenter(self, model)
+        
+        self.create_header_bar()
+        self.connect_signals()
+
+
         # Load data from presenter
         self.presenter.load_user_data()
-        self.presenter.load_portfolio_data()
+        self.presenter.display_cached_data()
 
         print(f"MainView.__init__: Received model with username: {model.get_username()}")
 
@@ -469,6 +468,175 @@ class MainView(QMainWindow):
         
         self.main_layout.addWidget(self.header_frame)
 
+    def connect_signals(self):
+        """Connect all UI signals to presenter methods after presenter is created"""
+        # Now connect button signals
+        self.btn_buy_order.clicked.connect(self.presenter.open_buy_order)
+        self.btn_sell_order.clicked.connect(self.presenter.open_sell_order)
+        self.btn_ai_advisor.clicked.connect(self.presenter.open_ai_advisor)
+        self.btn_trade_history.clicked.connect(self.presenter.open_trade_history)
+
+    def create_action_buttons_without_connections(self):
+        """Create modern action buttons"""
+        # Section title
+        action_title = QLabel("Investment Actions")
+        action_title.setObjectName("section-title")
+        action_title.setStyleSheet("font-size: 22px; font-weight: 600;")
+        self.main_layout.addWidget(action_title)
+        
+        # Button container
+        button_frame = QFrame()
+        button_frame.setObjectName("card")
+        button_frame.setStyleSheet("QFrame#card { padding: 20px; }")
+        
+        # Shadow effect
+        button_shadow = QGraphicsDropShadowEffect(button_frame)
+        button_shadow.setBlurRadius(10)
+        button_shadow.setColor(QColor(0, 0, 0, 30))
+        button_shadow.setOffset(0, 3)
+        button_frame.setGraphicsEffect(button_shadow)
+        
+        # Layout for buttons
+        button_layout = QHBoxLayout(button_frame)
+        button_layout.setSpacing(20)
+        
+        svg_data = """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg>"""
+
+        # Create icon from SVG data
+        buy_icon = QIcon()
+        renderer = QSvgRenderer(QByteArray(svg_data.encode()))
+        pixmap = QPixmap(24, 24)
+        pixmap.fill(Qt.transparent)
+        painter = QPainter(pixmap)
+        renderer.render(painter)
+        painter.end()
+        buy_icon.addPixmap(pixmap)
+
+        # Create button with icon
+        self.btn_buy_order = QPushButton("Buy Order")  # Remove the emoji
+        self.btn_buy_order.setIcon(buy_icon)
+        self.btn_buy_order.setIconSize(QSize(24, 24))
+        self.btn_buy_order.setStyleSheet("""
+            QPushButton {
+                background-color: rgba(16, 185, 129, 0.2);
+                color: #10B981;
+                border: none;
+                border-radius: 10px;
+                padding: 15px 20px;
+                padding-left: 15px;  /* Adjust padding for icon */
+                font-size: 16px;
+                font-weight: 600;
+                text-align: center;
+            }
+            QPushButton:hover {
+                background-color: rgba(16, 185, 129, 0.3);
+            }
+        """)
+        
+        svg_data_sell = """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F77070" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trending-down h-5 w-5 text-red-400 mr-2"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"></polyline><polyline points="16 17 22 17 22 11"></polyline></svg>"""
+
+        # Create icon from SVG data for sell button
+        sell_icon = QIcon()
+        renderer_sell = QSvgRenderer(QByteArray(svg_data_sell.encode()))
+        pixmap_sell = QPixmap(24, 24)
+        pixmap_sell.fill(Qt.transparent)
+        painter_sell = QPainter(pixmap_sell)
+        renderer_sell.render(painter_sell)
+        painter_sell.end()
+        sell_icon.addPixmap(pixmap_sell)
+
+        self.btn_sell_order = QPushButton("Sell Order")
+        self.btn_sell_order.setIcon(sell_icon)
+        self.btn_sell_order.setIconSize(QSize(24, 24))
+        self.btn_sell_order.setStyleSheet("""
+        QPushButton {
+            background-color: rgba(239, 68, 68, 0.2);
+            color: #FCA5A5;
+            border: none;
+            border-radius: 10px;
+            padding: 15px 20px;
+            padding-left: 15px;  /* Adjust padding for icon */
+            font-size: 16px;
+            font-weight: 600;
+            text-align: center;
+        }
+        QPushButton:hover {
+            background-color: rgba(239, 68, 68, 0.3);
+        }
+    """)
+        
+        svg_data_ai = """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-brain h-5 w-5 text-blue-400 mr-2"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"></path><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"></path><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"></path><path d="M17.599 6.5a3 3 0 0 0 .399-1.375"></path><path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"></path><path d="M3.477 10.896a4 4 0 0 1 .585-.396"></path><path d="M19.938 10.5a4 4 0 0 1 .585.396"></path><path d="M6 18a4 4 0 0 1-1.967-.516"></path><path d="M19.967 17.484A4 4 0 0 1 18 18"></path></svg>"""
+
+        # Create icon from SVG data for AI Advisor button
+        ai_icon = QIcon()
+        renderer_ai = QSvgRenderer(QByteArray(svg_data_ai.encode()))
+        pixmap_ai = QPixmap(24, 24)
+        pixmap_ai.fill(Qt.transparent)
+        painter_ai = QPainter(pixmap_ai)
+        renderer_ai.render(painter_ai)
+        painter_ai.end()
+        ai_icon.addPixmap(pixmap_ai)
+
+        self.btn_ai_advisor = QPushButton("AI Advisor")
+        self.btn_ai_advisor.setIcon(ai_icon)
+        self.btn_ai_advisor.setIconSize(QSize(24, 24))
+        self.btn_ai_advisor.setStyleSheet("""
+        QPushButton {
+            background-color: rgba(59, 130, 246, 0.2);
+            color: #93C5FD;
+            border: none;
+            border-radius: 10px;
+            padding: 15px 20px;
+            padding-left: 15px;  /* Adjust padding for icon */
+            font-size: 16px;
+            font-weight: 600;
+            text-align: center;
+        }
+        QPushButton:hover {
+            background-color: rgba(59, 130, 246, 0.3);
+        }
+    """)
+        svg_data_history = """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#CBA2F3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-history h-5 w-5 text-purple-400 mr-2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M12 7v5l4 2"></path></svg>"""
+
+        # Create icon from SVG data for Trade History button
+        history_icon = QIcon()
+        renderer_history = QSvgRenderer(QByteArray(svg_data_history.encode()))
+        pixmap_history = QPixmap(24, 24)
+        pixmap_history.fill(Qt.transparent)
+        painter_history = QPainter(pixmap_history)
+        renderer_history.render(painter_history)
+        painter_history.end()
+        history_icon.addPixmap(pixmap_history)
+
+        self.btn_trade_history = QPushButton("Trade History")
+        self.btn_trade_history.setIcon(history_icon)
+        self.btn_trade_history.setIconSize(QSize(24, 24))
+
+        self.btn_trade_history.setStyleSheet("""
+    QPushButton {
+        background-color: rgba(168, 85, 247, 0.2);
+        color: #C4B5FD;
+        border: none;
+        border-radius: 10px;
+        padding: 15px 20px;
+        padding-left: 15px;  /* Adjust padding for icon */
+        font-size: 16px;
+        font-weight: 600;
+        text-align: center;
+    }
+    QPushButton:hover {
+        background-color: rgba(168, 85, 247, 0.3);
+    }
+""")
+        
+        # Add buttons to layout
+        button_layout.addWidget(self.btn_buy_order)
+        button_layout.addWidget(self.btn_sell_order)
+        button_layout.addWidget(self.btn_ai_advisor)
+        button_layout.addWidget(self.btn_trade_history)
+        
+        self.main_layout.addWidget(button_frame)
+
     def create_action_buttons(self):
         """Create modern action buttons"""
         # Section title
@@ -862,6 +1030,10 @@ class MainView(QMainWindow):
 
     def update_header(self, text):
         """Update header text"""
+        print(f"update_header called with: {text}")
+        print(f"Does self.label exist? {hasattr(self, 'label')}")
+        if hasattr(self, 'label'):
+            print(f"Label type: {type(self.label)}")
         self.label.setText(text)
 
     def update_status_bar(self, message):

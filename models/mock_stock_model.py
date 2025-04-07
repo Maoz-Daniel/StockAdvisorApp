@@ -7,7 +7,6 @@ class MockStockModel:
         # Base API URL
         self.api_base_url = "http://localhost:5124/api"
 
-
         self.users = {
         "maoz": "3242",
         "1": "1",
@@ -207,7 +206,7 @@ class MockStockModel:
         return total_value, total_unrealized_pl
     
     def get_portfolio_data(self):
-        print("Getting portfolio data from backend")
+        print(f"TRACE: get_portfolio_data called from {self._get_caller_info()}")
         # Get user_id (default to 1 if not available)
         user_id = getattr(self, "user_id", 1)
         
@@ -272,11 +271,17 @@ class MockStockModel:
         
         return result
 
+    def _get_caller_info(self):
+        """Helper method to identify who is calling a method"""
+        import traceback
+        stack = traceback.extract_stack()
+        # Get the second-to-last entry (the caller of the current method)
+        caller = stack[-2]
+        return f"{caller.filename}:{caller.lineno} in {caller.name}"
 
-
+    # In your MockStockModel class
     def buy_stock(self, stock, quantity, price):
         print(f"Buying stock: {stock}, quantity: {quantity}, price: {price}")
-
         
         transaction_data = {
             "UserId": getattr(self, "user_id", 1), 
@@ -290,32 +295,34 @@ class MockStockModel:
             response = requests.post(f"{self.api_base_url}/Transaction", json=transaction_data)
             if response.status_code == 200 or response.status_code == 201:
                 print("Transaction recorded in the database successfully.")
+                
+                # Notify any listeners that data has changed
+                if hasattr(self, 'on_data_changed') and callable(self.on_data_changed):
+                    self.on_data_changed()
+                    
+                # Update local portfolio
+                if stock in self.portfolio:
+                    self.portfolio[stock]["quantity"] += quantity
+                    self.portfolio[stock]["price"] = price
+                else:
+                    self.portfolio[stock] = {"price": price, "quantity": quantity}
+                    
+                # Add to trade history
+                self.trade_history.append({
+                    "date": datetime.now(),
+                    "stock": stock,
+                    "action": "Buy",
+                    "quantity": quantity,
+                    "price": price
+                })
+                    
+                return True
             else:
                 print(f"Failed to record transaction: {response.status_code} - {response.text}")
-                # אפשר להחליט אם ברצונך להחזיר False כדי שה-UI ידע שנכשל
                 return False
         except Exception as e:
             print(f"Error calling Transaction API: {str(e)}")
-            # כנ"ל - אפשר להחליט מה להחזיר
             return False
-
-        # 2. עדכון ה"פורטפוליו" המקומי (אם עדיין רלוונטי):
-        if stock in self.portfolio:
-            self.portfolio[stock]["quantity"] += quantity
-            self.portfolio[stock]["price"] = price
-        else:
-            self.portfolio[stock] = {"price": price, "quantity": quantity}
-
-        # 3. הוספה ל-היסטוריית המסחר המקומית (לא חובה, תלוי אם רוצים להציג משהו ב-UI):
-        self.trade_history.append({
-            "date": datetime.now(),
-            "stock": stock,
-            "action": "Buy",
-            "quantity": quantity,
-            "price": price
-        })
-
-        return True
 
 
     def sell_stock(self, stock, quantity, price):
@@ -338,6 +345,9 @@ class MockStockModel:
                 # 2. Update the local portfolio (ONLY after successful API call)
                 portfolio_updated = False
                 
+                if hasattr(self, 'on_data_changed') and callable(self.on_data_changed):
+                    self.on_data_changed()
+
                 # Check if we're using dictionary-based portfolio (with stock symbols as keys)
                 if isinstance(self.portfolio, dict):
                     if stock in self.portfolio and self.portfolio[stock]["quantity"] >= quantity:

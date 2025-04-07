@@ -10,7 +10,60 @@ class MainPresenter:
         """ קונסטרקטור שמקבל את ה-View ומחבר אותו ל-Model """
         self.view = view
         self.model = model
+        self.model.on_data_changed = self.refresh_portfolio_data
+
         print(f"MainPresenter.__init__: Received model with username: {model.get_username()}")
+
+        self.display_existing_portfolio_data()
+
+
+    def display_cached_data(self):
+        """Display cached data instead of reloading"""
+        if hasattr(self.model, "cached_portfolio_data") and self.model.cached_portfolio_data:
+            print("Using cached portfolio data")
+            # Update the view with cached data
+            self.view.update_portfolio_table(self.model.cached_portfolio_data)
+            
+            # Use cached totals if available
+            if hasattr(self.model, "total_portfolio_value") and hasattr(self.model, "total_unrealized_pl"):
+                total_value = self.model.total_portfolio_value
+                total_unrealized_pl = self.model.total_unrealized_pl
+                self.view.update_portfolio_summary(total_value, total_unrealized_pl)
+            else:
+                # Fall back to calculating totals from cached data
+                total_value, total_unrealized_pl = self.model.get_portfolio_total_value(self.model.cached_portfolio_data)
+                self.view.update_portfolio_summary(total_value, total_unrealized_pl)
+        else:
+            # Fall back to loading fresh data if no cache
+            print("No cached data found, loading portfolio data")
+            self.load_portfolio_data()
+
+    def display_existing_portfolio_data(self):
+        """Display already loaded portfolio data without fetching it again"""
+        try:
+            # Check if we have cached data to avoid refetching
+            if hasattr(self.model, "cached_portfolio_data") and self.model.cached_portfolio_data:
+                print("Using cached portfolio data")
+                portfolio_data = self.model.cached_portfolio_data
+                
+                # Update the table
+                self.view.update_portfolio_table(portfolio_data)
+                
+                # Use cached totals if available
+                if hasattr(self.model, "total_portfolio_value") and hasattr(self.model, "total_unrealized_pl"):
+                    total_value = self.model.total_portfolio_value
+                    total_unrealized_pl = self.model.total_unrealized_pl
+                    self.view.update_portfolio_summary(total_value, total_unrealized_pl)
+                else:
+                    # Fall back to calculating totals
+                    total_value, total_unrealized_pl = self.model.get_portfolio_total_value()
+                    self.view.update_portfolio_summary(total_value, total_unrealized_pl)
+            else:
+                # Fall back to loading fresh data
+                print("No cached data found, loading portfolio data")
+                self.load_portfolio_data()
+        except Exception as e:
+            print(f"Error displaying portfolio data: {e}")
 
     def load_user_data(self):
         """ Load username and update main header """
@@ -65,6 +118,24 @@ class MainPresenter:
         """ Open window for buying stocks """
         self.view.buy_order_window = BuyOrderWindow(self.model)
         self.view.buy_order_window.show()
+
+    # In your MainPresenter class
+    def refresh_portfolio_data(self):
+        """Refresh portfolio data in the main view"""
+        try:
+            # Get fresh data from the model
+            portfolio_data = self.model.get_portfolio_data()
+            
+            # Update the view with new data
+            self.view.update_portfolio_table(portfolio_data)
+            
+            # Update the summary information
+            total_value, total_unrealized_pl = self.model.get_portfolio_total_value()
+            self.view.update_portfolio_summary(total_value, total_unrealized_pl)
+            
+            print("Portfolio data refreshed successfully")
+        except Exception as e:
+            print(f"Error refreshing portfolio data: {e}")
 
     def open_sell_order(self):
         """ Open window for selling stocks """

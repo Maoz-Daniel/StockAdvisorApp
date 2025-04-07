@@ -8,7 +8,7 @@ from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtCore import Qt, QSize, QDate, QMargins, QDateTime, QTimer,QByteArray
 from PySide6.QtGui import QColor, QFont, QPainter, QPen,QIcon, QPixmap, QPainter, QFont, QPen, QColor
 from PySide6.QtCharts import QChart, QChartView, QLineSeries, QValueAxis, QDateTimeAxis
-# Import the FaceID6 theme
+
 from assets.theme import FaceID6Theme
 from assets.theme import LuxuryTheme
 from assets.theme import DarkLuxuryTheme

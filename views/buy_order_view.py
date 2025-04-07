@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
 import requests
 from io import BytesIO
 
-from PySide6.QtCore import Qt, QSize, QDate, QMargins, QDateTime, QTimer, QByteArray, QUrl, QEvent
+from PySide6.QtCore import Qt, QSize, QDate, QMargins, QDateTime, QTimer, QByteArray, QUrl, QEvent, Signal, QPoint
 from PySide6.QtGui import QColor, QFont, QPainter, QPen, QIcon, QPixmap, QKeySequence
 from PySide6.QtCharts import QChart, QChartView, QLineSeries, QValueAxis, QDateTimeAxis
 from PySide6.QtSvg import QSvgRenderer
@@ -117,6 +117,7 @@ class OrderPreviewDialog(QDialog):
 
 class BuyOrderWindow(QMainWindow):
     #-----------------------------------------------Initialization and UI Construction----------------------------------------
+    purchase_completed = Signal()
 
     def __init__(self, model, parent=None):
         super().__init__(parent)
@@ -758,6 +759,7 @@ class BuyOrderWindow(QMainWindow):
             
         success = self.presenter.process_buy_order(stock, quantity)
         if success:
+            self.purchase_completed.emit()
             self.close()
   
   #-----------------------------------------------Additional UI Dialog Functions----------------------------------------

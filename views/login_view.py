@@ -1,22 +1,42 @@
 # login_view.py
-from PySide6.QtWidgets import (QDialog, QLabel, QVBoxLayout, QHBoxLayout, 
-                               QLineEdit, QPushButton, QCheckBox, QFrame, QGraphicsDropShadowEffect)
-from PySide6.QtCore import Qt
+
+from PySide6.QtWidgets import (QDialog, QLabel, QVBoxLayout, QHBoxLayout, QGraphicsOpacityEffect,
+                              QLineEdit, QPushButton, QCheckBox, QFrame, QGraphicsDropShadowEffect,
+                              QProgressBar)
+from PySide6.QtCore import Qt, QTimer, Signal, Slot
 from PySide6.QtGui import QColor
-from presenters import login_presenter
-from models import mock_stock_model
 
 class LoginDialog(QDialog):
+    """
+    Dialog for user login with loading animation.
+    Shows an overlay with progress bar during data loading.
+    """
+    login_success = Signal(str)  # Signal to indicate successful login with username
+    close_dialog = Signal()      # Signal to close the dialog after loading
+    
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Smart Finance - Secure Login")
         self.setFixedSize(450, 550)
         self.username = ""
+        self.presenter = None
         
         # Set window flags
         self.setWindowFlags(Qt.Dialog | Qt.WindowCloseButtonHint)
         
         # Apply stylesheets
+        self._apply_stylesheet()
+        
+        # Setup UI components
+        self._setup_ui()
+        
+        # Connect signals
+        self.close_dialog.connect(self.complete_login)
+        self.login_button.clicked.connect(self.on_login_clicked)
+        self.register_button.clicked.connect(self.on_register_clicked)
+    
+    def _apply_stylesheet(self):
+        """Apply stylesheet to the dialog"""
         self.setStyleSheet("""
             QDialog {
                 background-color: #FFFFFF;
@@ -127,8 +147,25 @@ class LoginDialog(QDialog):
                 color: #64748B;
                 font-size: 13px;
             }
+            QProgressBar {
+                border: 1px solid #E2E8F0;
+                border-radius: 5px;
+                text-align: center;
+                height: 20px;
+            }
+            QProgressBar::chunk {
+                background-color: #1E40AF;
+                border-radius: 5px;
+            }
+            QLabel#loading-text {
+                color: #1E40AF;
+                font-size: 14px;
+                font-weight: 500;
+            }
         """)
-        
+    
+    def _setup_ui(self):
+        """Set up UI components"""
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
@@ -175,33 +212,33 @@ class LoginDialog(QDialog):
         card_layout.addSpacing(20)
         
         # Form layouts
-        form_layout = QVBoxLayout()
-        form_layout.setSpacing(15)
+        self.form_layout = QVBoxLayout()
+        self.form_layout.setSpacing(15)
         
         # Username field
         username_label = QLabel("Username")
         username_label.setObjectName("field-label")
-        form_layout.addWidget(username_label)
+        self.form_layout.addWidget(username_label)
         
         self.username_input = QLineEdit()
         self.username_input.setPlaceholderText("Enter your username")
-        form_layout.addWidget(self.username_input)
+        self.form_layout.addWidget(self.username_input)
         
         # Password field
         password_label = QLabel("Password")
         password_label.setObjectName("field-label")
-        form_layout.addWidget(password_label)
+        self.form_layout.addWidget(password_label)
         
         self.password_input = QLineEdit()
         self.password_input.setPlaceholderText("Enter your password")
         self.password_input.setEchoMode(QLineEdit.Password)
-        form_layout.addWidget(self.password_input)
+        self.form_layout.addWidget(self.password_input)
         
-        # Error label – מוצג רק במקרה של כישלון
+        # Error label
         self.error_label = QLabel("")
         self.error_label.setStyleSheet("color: red; font-size: 14px;")
         self.error_label.setAlignment(Qt.AlignCenter)
-        form_layout.addWidget(self.error_label)
+        self.form_layout.addWidget(self.error_label)
         
         # Remember me and forgot password
         remember_forgot_layout = QHBoxLayout()
@@ -211,23 +248,42 @@ class LoginDialog(QDialog):
         forgot_button.setObjectName("forgot-button")
         remember_forgot_layout.addWidget(forgot_button)
         remember_forgot_layout.setAlignment(forgot_button, Qt.AlignRight)
-        form_layout.addLayout(remember_forgot_layout)
-        form_layout.addSpacing(10)
+        self.form_layout.addLayout(remember_forgot_layout)
+        self.form_layout.addSpacing(10)
         
-        card_layout.addLayout(form_layout)
+        card_layout.addLayout(self.form_layout)
         
         # Buttons
         self.login_button = QPushButton("Sign In")
         self.login_button.setObjectName("login-button")
-        self.login_button.clicked.connect(self.on_login_clicked)
         card_layout.addWidget(self.login_button)
         
         card_layout.addSpacing(10)
         
         self.register_button = QPushButton("Create New Account")
         self.register_button.setObjectName("register-button")
-        self.register_button.clicked.connect(self.on_register_clicked)  # Add this line
         card_layout.addWidget(self.register_button)
+        
+        # Loading Section - Initially hidden
+        self.loading_layout = QVBoxLayout()
+        self.loading_layout.setSpacing(10)
+        
+        self.loading_text = QLabel("Loading your dashboard...")
+        self.loading_text.setObjectName("loading-text")
+        self.loading_text.setAlignment(Qt.AlignCenter)
+        self.loading_layout.addWidget(self.loading_text)
+        
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(0)
+        self.loading_layout.addWidget(self.progress_bar)
+        
+        # Create a widget to hold the loading controls
+        self.loading_widget = QFrame()
+        self.loading_widget.setLayout(self.loading_layout)
+        self.loading_widget.setVisible(False)  # Initially hidden
+        
+        card_layout.addWidget(self.loading_widget)
         
         # Footer
         card_layout.addSpacing(20)
@@ -239,7 +295,122 @@ class LoginDialog(QDialog):
         
         main_layout.addWidget(card, 1, Qt.AlignCenter)
         self.setLayout(main_layout)
+    
+    def set_presenter(self, presenter):
+        """Set the presenter for this view"""
+        self.presenter = presenter
+    
+    def get_username(self):
+        """Get the authenticated username"""
+        return self.username
 
+    # Login flow methods
+    def on_login_clicked(self):
+        """Handle login button click"""
+        username = self.username_input.text()
+        password = self.password_input.text()
+        print(f"LoginDialog: on_login_clicked() called with username={username}, password={password}")
+        
+        # Use the original perform_login method to check credentials
+        if self.presenter.perform_login(username, password):
+            print("LoginDialog: Login successful, showing loading bar.")
+            self.username = username
+            
+            # Hide login form and show loading
+            self.show_loading_view()
+            
+            # Start loading data in the background
+            self.presenter.start_loading_data(username, self)
+        else:
+            print("LoginDialog: Login failed, please try again.")
+            self.error_label.setText("Username or password incorrect.")
+    
+    def show_loading_view(self):
+        """Create a modal overlay for the loading view"""
+        # Create a semi-transparent overlay for the entire dialog
+        self.overlay = QFrame(self)
+        self.overlay.setObjectName("loading-overlay")
+        self.overlay.setStyleSheet("""
+            QFrame#loading-overlay {
+                background-color: rgba(255, 255, 255, 0.85);
+                border-radius: 12px;
+            }
+        """)
+        self.overlay.setGeometry(self.rect())
+        
+        # Create loading components on the overlay
+        overlay_layout = QVBoxLayout(self.overlay)
+        overlay_layout.setAlignment(Qt.AlignCenter)
+        
+        self.overlay_loading_text = QLabel("Loading your dashboard...")
+        self.overlay_loading_text.setObjectName("loading-text")
+        self.overlay_loading_text.setAlignment(Qt.AlignCenter)
+        self.overlay_loading_text.setStyleSheet("""
+            color: #1E40AF;
+            font-size: 16px;
+            font-weight: 500;
+        """)
+        
+        self.overlay_progress_bar = QProgressBar()
+        self.overlay_progress_bar.setRange(0, 100)
+        self.overlay_progress_bar.setValue(0)
+        self.overlay_progress_bar.setFixedWidth(300)
+        self.overlay_progress_bar.setStyleSheet("""
+            QProgressBar {
+                border: 1px solid #E2E8F0;
+                border-radius: 5px;
+                text-align: center;
+                height: 20px;
+                background-color: #F8FAFC;
+            }
+            QProgressBar::chunk {
+                background-color: #1E40AF;
+                border-radius: 5px;
+            }
+        """)
+        
+        overlay_layout.addWidget(self.overlay_loading_text)
+        overlay_layout.addWidget(self.overlay_progress_bar)
+        
+        # Show the overlay
+        self.overlay.raise_()
+        self.overlay.show()
+        
+        # Update the UI
+        self.repaint()
+    
+    def update_progress(self, progress, status_text=None):
+        """Update the progress bar with actual loading progress"""
+        self.overlay_progress_bar.setValue(progress)
+        
+        if status_text:
+            self.overlay_loading_text.setText(status_text)
+        
+        # Update the UI
+        self.repaint()
+        
+        # If progress is 100%, update the text but don't automatically close
+        if progress >= 100:
+            self.overlay_loading_text.setText("Ready! Opening dashboard...")
+            # Let the UI update before proceeding
+            self.repaint()
+    
+    @Slot()
+    def complete_login(self):
+        """Complete the login process after data is loaded"""
+        print("LoginDialog: Loading complete, closing dialog.")
+        
+        # Use a short timer to ensure the UI gets updated before closing
+        QTimer.singleShot(200, self._finish_login)
+    
+    def _finish_login(self):
+        """Actual method to close the dialog and emit success signal - called by timer"""
+        if hasattr(self, 'overlay'):
+            self.overlay.deleteLater()
+        self.login_success.emit(self.username)
+        self.accept()
+
+    # Registration method
     def on_register_clicked(self):
         """Open the registration dialog when the register button is clicked"""
         from views.register_view import RegisterDialog
@@ -254,24 +425,3 @@ class LoginDialog(QDialog):
             username = register_dialog.username_input.text()
             self.username_input.setText(username)
             self.password_input.setFocus()
-        
-
-    def on_login_clicked(self):
-        username = self.username_input.text()
-        password = self.password_input.text()
-        print(f"LoginDialog: on_login_clicked() called with username={username}, password={password}")
-        result = self.presenter.perform_login(username, password)
-        if result:
-            print("LoginDialog: Login successful, closing dialog.")
-            self.username = username
-            self.accept()
-        else:
-            print("LoginDialog: Login failed, please try again.")
-            self.error_label.setText("Username or password incorrect.")
-
-    def get_username(self):
-        return self.username
-    
-    def set_presenter(self, presenter):
-        self.presenter = presenter
-        # print("LoginDialog: Presenter set externally")
