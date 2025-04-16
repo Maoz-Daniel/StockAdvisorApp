@@ -40,9 +40,9 @@ class MockStockModel:
             
             # Call the API endpoint
             response = requests.get(
-                f"{self.api_base_url}/Stock/search-symbol",
-                params={"name": company_name}
-            )
+            f"{self.api_base_url}/stock/queries/search",
+            params={"name": company_name}
+        )
             
             # Check if the request was successful
             if response.status_code == 200:
@@ -87,9 +87,9 @@ class MockStockModel:
             
             # Call the API endpoint
             response = requests.get(
-                f"{self.api_base_url}/Stock/{symbol}/yahoo-history",
-                params={"from": start_date, "to": end_date}
-            )
+            f"{self.api_base_url}/stock/queries/yahoo-history/{symbol}",
+            params={"from": start_date, "to": end_date}
+        )
             
             if response.status_code == 200:
                 history_data = response.json()
@@ -117,7 +117,7 @@ class MockStockModel:
     def get_current_price(self, symbol):
         """Get current price for a stock"""
         try:
-            response = requests.get(f"{self.api_base_url}/Stock/{symbol}/price")
+            response = requests.get(f"{self.api_base_url}/stock/queries/price/{symbol}")
             
             if response.status_code == 200:
                 price_data = response.json()
@@ -211,7 +211,8 @@ class MockStockModel:
         user_id = getattr(self, "user_id", 1)
         
         try:
-            url = f"{self.api_base_url}/Transaction/portfolio/{user_id}"
+            # Change the endpoint to use the new query controller
+            url = f"{self.api_base_url}/transaction/queries/portfolio/{user_id}"
             print(f"Fetching portfolio data from: {url}")
             response = requests.get(url)
             if response.status_code == 200:
@@ -279,7 +280,6 @@ class MockStockModel:
         caller = stack[-2]
         return f"{caller.filename}:{caller.lineno} in {caller.name}"
 
-    # In your MockStockModel class
     def buy_stock(self, stock, quantity, price):
         print(f"Buying stock: {stock}, quantity: {quantity}, price: {price}")
         
@@ -292,7 +292,8 @@ class MockStockModel:
         }
 
         try:
-            response = requests.post(f"{self.api_base_url}/Transaction", json=transaction_data)
+            # Change the endpoint to use the new command controller
+            response = requests.post(f"{self.api_base_url}/transaction/commands/add", json=transaction_data)
             if response.status_code == 200 or response.status_code == 201:
                 print("Transaction recorded in the database successfully.")
                 
@@ -324,7 +325,7 @@ class MockStockModel:
             print(f"Error calling Transaction API: {str(e)}")
             return False
 
-
+    # 2. Update the sell_stock method (around line 325)
     def sell_stock(self, stock, quantity, price):
         print(f"Selling stock: {stock}, quantity: {quantity}, price: {price}")
         
@@ -338,7 +339,8 @@ class MockStockModel:
         }
         
         try:
-            response = requests.post(f"{self.api_base_url}/Transaction", json=transaction_data)
+            # Change the endpoint to use the new command controller
+            response = requests.post(f"{self.api_base_url}/transaction/commands/add", json=transaction_data)
             if response.status_code == 200 or response.status_code == 201:
                 print("Transaction recorded in the database successfully.")
                 
@@ -411,9 +413,9 @@ class MockStockModel:
         """Authenticate user"""
         try:
             response = requests.post(
-                f"{self.api_base_url}/Auth/login",
-                json={"username": username, "password": password}
-            )
+            f"{self.api_base_url}/auth/queries/login",  # Updated endpoint
+            json={"username": username, "password": password}
+        )
             
             if response.status_code == 200:
                 user_data = response.json()
@@ -443,7 +445,7 @@ class MockStockModel:
         """Register a new user"""
         try:
             response = requests.post(
-                f"{self.api_base_url}/Auth/register",
+                f"{self.api_base_url}/auth/commands/register",
                 json={"username": username, "password": password, "email": email}
             )
             
@@ -458,28 +460,15 @@ class MockStockModel:
         Get all transactions from the server for the specified user_id.
         """
         try:
-            url = f"{self.api_base_url}/Transaction/user/{user_id}"
+            # Change the endpoint to use the new query controller
+            url = f"{self.api_base_url}/transaction/queries/user/{user_id}"
             print(f"Fetching transactions from: {url}")
             response = requests.get(url)
             
             if response.status_code == 200:
                 transactions = response.json()
-                # כעת 'transactions' הוא list של דיקשנריז לפי המבנה בשרת
-                # לדוגמה:
-                # [
-                #   {
-                #     "transactionId": 123,
-                #     "userId": 1,
-                #     "symbol": "AAPL",
-                #     "transactionType": "BUY",
-                #     "quantity": 5.0,
-                #     "price": 150.0,
-                #     "transactionDate": "2025-03-26T10:15:00"
-                #   },
-                #   ...
-                # ]
                 
-                # נהפוך את שדות התאריך (transactionDate) ל־datetime, אם רוצים:
+                # Parse the transactions
                 parsed_transactions = []
                 for t in transactions:
                     parsed_transactions.append({
@@ -498,11 +487,11 @@ class MockStockModel:
         except Exception as e:
             print(f"Error fetching user transactions: {str(e)}")
             return []
-
+    
     def get_company_description(self, symbol):
         """Get company description for a stock symbol"""
         try:
-            response = requests.get(f"{self.api_base_url}/Stock/{symbol}/description")
+            response = requests.get(f"{self.api_base_url}/stock/queries/description/{symbol}")
             if response.status_code == 200:
                 description = response.text.strip('"')  # Remove quotes if the API returns JSON string
                 print(f"Got description for {symbol}: {description[:50]}...")
@@ -517,7 +506,7 @@ class MockStockModel:
     def get_company_profile(self, symbol):
         """Get company profile information for a stock symbol"""
         try:
-            response = requests.get(f"{self.api_base_url}/Stock/profile/{symbol}")
+            response = requests.get(f"{self.api_base_url}/stock/queries/profile/{symbol}")
             if response.status_code == 200:
                 profile = response.json()
                 print("json is:", profile)

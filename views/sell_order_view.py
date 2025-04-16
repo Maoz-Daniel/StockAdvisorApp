@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtCore import Qt, QSize, QDate, QMargins, QDateTime, QTimer,QByteArray
-from PySide6.QtGui import QColor, QFont, QPainter, QPen,QIcon, QPixmap, QPainter, QFont, QPen, QColor
+from PySide6.QtGui import QColor, QFont, QPainter, QPen,QIcon, QPixmap, QPainter, QFont, QPen, QColor, QPainter, QPixmap
 from PySide6.QtCharts import QChart, QChartView, QLineSeries, QValueAxis, QDateTimeAxis
 
 from assets.theme import FaceID6Theme
@@ -113,22 +113,59 @@ class SellOrderWindow(QMainWindow):
         self.header_frame = QFrame()
         self.header_frame.setObjectName("header-frame")
         self.header_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.header_frame.setMinimumHeight(140)
+        self.header_frame.setMinimumHeight(80)
         
         header_layout = QVBoxLayout(self.header_frame)
         header_layout.setContentsMargins(20, 10, 20, 10)
 
-        title_label = QLabel("📉 Sell Order")
-        title_label.setObjectName("welcome-label")
-        title_label.setAlignment(Qt.AlignCenter)
+        svg_data = """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trending-down text-red-500"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"></polyline><polyline points="16 17 22 17 22 11"></polyline></svg>"""
 
+        # Create a QHBoxLayout to hold both the icon and the text
+        title_layout = QHBoxLayout()
+        title_layout.setSpacing(10)  # Space between icon and text
+        title_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Create the SVG icon
+        svg_renderer = QSvgRenderer(QByteArray(svg_data.encode()))
+        icon_pixmap = QPixmap(24, 24)
+        icon_pixmap.fill(Qt.transparent)
+        icon_painter = QPainter(icon_pixmap)
+        svg_renderer.render(icon_painter)
+        icon_painter.end()
+
+        # Create a label for the icon
+        icon_label = QLabel()
+        icon_label.setPixmap(icon_pixmap)
+        icon_label.setFixedSize(24, 24)
+
+        # Create a label for the text part
+        text_label = QLabel("Sell Order")
+        text_label.setObjectName("welcome-label")
+
+        # Add both labels to the title layout
+        title_layout.addStretch()  # Add stretch to center the content
+        title_layout.addWidget(icon_label)
+        title_layout.addWidget(text_label)
+        title_layout.addStretch()  # Add stretch to center the content
+
+        # Create a container widget to hold the layout
+        title_container = QWidget()
+        title_container.setLayout(title_layout)
+        title_container.setObjectName("welcome-label")  # Apply the same styling
+        
         self.subtitle_label = QLabel()
         self.subtitle_label.setObjectName("subtitle-label")
         self.subtitle_label.setAlignment(Qt.AlignCenter)
 
-        header_layout.addWidget(title_label)
         header_layout.addWidget(self.subtitle_label)
         self.main_layout.addWidget(self.header_frame)
+
+        # Use the container instead of the original title_label
+        header_layout.addWidget(title_container)
+        header_layout.addWidget(self.subtitle_label)
+        self.main_layout.addWidget(self.header_frame)
+
+
         
         # Portfolio section
         portfolio_section = QFrame()

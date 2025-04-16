@@ -389,7 +389,7 @@ class MainView(QMainWindow):
         # Main container for scrollable content
         container = QWidget()
         self.main_layout = QVBoxLayout(container)
-        self.main_layout.setContentsMargins(20, 20, 20, 20)
+        self.main_layout.setContentsMargins(20, 60, 20, 20)
         self.main_layout.setSpacing(25)
 
         # Create scroll area
