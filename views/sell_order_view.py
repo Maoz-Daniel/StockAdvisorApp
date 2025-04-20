@@ -2,17 +2,14 @@ from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QLabel, QFrame, QPushButton, 
     QGraphicsDropShadowEffect, QLineEdit, QSpinBox, QComboBox, QApplication,
     QScrollArea, QSizePolicy, QHBoxLayout, QStatusBar, QMessageBox, QDialog,
-    QCompleter, QProgressBar, QTextEdit, QListWidget, QListWidgetItem,QMenu,QGridLayout
+    QCompleter, QProgressBar, QTextEdit, QListWidget, QListWidgetItem, QMenu, QGridLayout
 )
 from PySide6.QtSvg import QSvgRenderer
-from PySide6.QtCore import Qt, QSize, QDate, QMargins, QDateTime, QTimer,QByteArray
-from PySide6.QtGui import QColor, QFont, QPainter, QPen,QIcon, QPixmap, QPainter, QFont, QPen, QColor, QPainter, QPixmap
+from PySide6.QtCore import Qt, QSize, QDate, QDateTime, QTimer, QByteArray
+from PySide6.QtGui import QColor, QFont, QPainter, QPen, QIcon, QPixmap
 from PySide6.QtCharts import QChart, QChartView, QLineSeries, QValueAxis, QDateTimeAxis
 
 from assets.theme import FaceID6Theme
-from assets.theme import LuxuryTheme
-from assets.theme import DarkLuxuryTheme
-
 from presenters.sell_order_presenter import SellOrderPresenter
 
 class OrderPreviewDialog(QDialog):
@@ -157,15 +154,9 @@ class SellOrderWindow(QMainWindow):
         self.subtitle_label.setObjectName("subtitle-label")
         self.subtitle_label.setAlignment(Qt.AlignCenter)
 
-        header_layout.addWidget(self.subtitle_label)
-        self.main_layout.addWidget(self.header_frame)
-
-        # Use the container instead of the original title_label
         header_layout.addWidget(title_container)
         header_layout.addWidget(self.subtitle_label)
         self.main_layout.addWidget(self.header_frame)
-
-
         
         # Portfolio section
         portfolio_section = QFrame()
@@ -200,7 +191,6 @@ class SellOrderWindow(QMainWindow):
         self.success_message.setObjectName("success-message")
         self.success_message.setVisible(False)
         portfolio_layout.addWidget(self.success_message)
-
                 
         portfolio_layout.setContentsMargins(20, 20, 20, 20)
         portfolio_layout.setSpacing(15)
@@ -408,27 +398,7 @@ class SellOrderWindow(QMainWindow):
         # Initially disable sell buttons until a stock is selected
         self.preview_button.setEnabled(False)
         self.sell_button.setEnabled(False)
-
-        # Create a helper function for form rows
-        def create_form_row(label_text, input_widget):
-            row_widget = QWidget()
-            row_layout = QVBoxLayout(row_widget)
-            row_layout.setContentsMargins(0, 0, 0, 0)
-            row_layout.setSpacing(8)
-            
-            label = QLabel(label_text)
-            label.setObjectName("accent-text")
-            label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-            
-            input_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-            
-            row_layout.addWidget(label)
-            row_layout.addWidget(input_widget)
-            
-            return row_widget
         
-        self.main_layout.addWidget(self.form_frame)
-
         # Add a spacer at the bottom
         bottom_spacer = QWidget()
         bottom_spacer.setMinimumHeight(20)
@@ -446,10 +416,6 @@ class SellOrderWindow(QMainWindow):
         # Initialize presenter
         self.presenter = SellOrderPresenter(self, self.model)
         
-        # Initially disable sell buttons until a stock is selected
-        self.preview_button.setEnabled(False)
-        self.sell_button.setEnabled(False)
-        
         # Setup loading animation timer
         self.loading_dots = 0
         self.loading_timer = QTimer(self)
@@ -465,14 +431,13 @@ class SellOrderWindow(QMainWindow):
             
             total = quantity * price
             self.total_value_label.setText(f"${total:.2f}")
-        except (ValueError, AttributeError) as e:
-            print(f"Error updating total value: {e}")
+        except (ValueError, AttributeError):
             self.total_value_label.setText("$0.00")
 
     def set_max_quantity(self):
         """Set the quantity to the maximum shares owned"""
         try:
-            shares_text = self.shares_owned_label.text().replace("Shares Owned: ", "")
+            shares_text = self.shares_owned_label.text()
             shares_owned = int(shares_text)
             self.quantity_input.setValue(shares_owned)
         except (ValueError, AttributeError):
@@ -969,9 +934,6 @@ class SellOrderWindow(QMainWindow):
         series = QLineSeries()
         series.setName(f"{stock_symbol} Price")
         
-        # Debug chart data
-        print(f"Chart data for {stock_symbol}: {chart_data[:5] if chart_data else 'None'}")
-        
         # Add data points if chart_data exists and has the expected format
         if chart_data and len(chart_data) > 0:
             try:
@@ -1018,9 +980,7 @@ class SellOrderWindow(QMainWindow):
                 series.attachAxis(value_axis)
                 
                 self.chart_view.setChart(chart)
-                print(f"Chart updated successfully for {stock_symbol}")
-            except Exception as e:
-                print(f"Error creating chart: {str(e)}")
+            except Exception:
                 # Set an empty chart with an error message
                 error_chart = QChart()
                 error_chart.setTitle(f"Error loading chart for {stock_symbol}")
