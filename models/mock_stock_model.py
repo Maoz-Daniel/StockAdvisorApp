@@ -1,5 +1,17 @@
 import random
 import requests
+import os
+import time
+# RAG imports
+from langchain_community.document_loaders import PyPDFLoader
+from langchain.text_splitter import CharacterTextSplitter
+from langchain_community.vectorstores import Chroma
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.vectorstores import FAISS
+
+from langchain.chains import RetrievalQA
+from langchain_community.llms import Ollama
+
 from datetime import datetime, timedelta
 
 class MockStockModel:
@@ -28,8 +40,15 @@ class MockStockModel:
                 {"date": datetime.now() - timedelta(days=1), "stock": "META", "action": "Sell", "quantity": 6, "price": 280.00},
                 {"date": datetime.now(), "stock": "NVDA", "action": "Buy", "quantity": 4, "price": 750.00},
             ]
-    
-    
+        # Initialize core properties
+        self.rag_ready = False
+        self.vectorstore = None
+        self.embeddings = None
+
+        print("📚 Initializing RAG system...")
+        self._init_rag() 
+
+
     def search_symbol_by_name(self, company_name):
         """
         Search for a stock symbol by company name using the API
@@ -325,7 +344,6 @@ class MockStockModel:
             print(f"Error calling Transaction API: {str(e)}")
             return False
 
-    # 2. Update the sell_stock method (around line 325)
     def sell_stock(self, stock, quantity, price):
         print(f"Selling stock: {stock}, quantity: {quantity}, price: {price}")
         
@@ -398,17 +416,203 @@ class MockStockModel:
         ]
         return filtered_trades
 
-
-    def get_ai_advice(self, query):
-        """Get AI trading advice (mock)"""
-        advices = [
-            "השוק תנודתי - שקול השקעה מבוזרת!",
-            "האם בדקת את המדדים הטכניים לפני הרכישה?",
-            "מומלץ להחזיק מניות לטווח ארוך כדי להפחית סיכונים.",
-            "השקעה במניות טכנולוגיה היא מגמה עכשווית, אך יש לשים לב לסיכונים."
+    def _init_rag(self):
+        """Initialize the RAG components with careful error handling and timing"""
+        start_time = time.time()
+        
+        try:
+            # 1. Find the PDF file
+            pdf_path = self._find_pdf_file()
+            if not pdf_path:
+                print("❌ Could not find the investment PDF file")
+                return False
+            
+            print(f"📄 Found PDF at: {pdf_path}")
+            
+            # 2. Load the PDF content
+            print("📖 Loading PDF content...")
+            loader = PyPDFLoader(pdf_path)
+            documents = loader.load()
+            print(f"✅ Loaded {len(documents)} pages from PDF")
+            
+            # 3. Split into chunks for better retrieval
+            print("✂️ Splitting document into chunks...")
+            text_splitter = CharacterTextSplitter(
+                chunk_size=500,  # Smaller chunks for more precise retrieval
+                chunk_overlap=50, 
+                separator="\n"
+            )
+            chunks = text_splitter.split_documents(documents)
+            print(f"✅ Created {len(chunks)} text chunks")
+            
+            # 4. Create embeddings
+            print("🔤 Initializing embeddings model...")
+            self.embeddings = HuggingFaceEmbeddings(
+                model_name="sentence-transformers/all-MiniLM-L6-v2"
+            )
+            
+            # 5. Create vector store
+            print("🗄️ Creating vector store...")
+            self.vectorstore = FAISS.from_documents(chunks, self.embeddings)
+            print("✅ Vector store created successfully")
+            
+            self.rag_ready = True
+            end_time = time.time()
+            print(f"✅ RAG system initialized in {end_time - start_time:.2f} seconds")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Error initializing RAG: {e}")
+            return False
+    
+    def _find_pdf_file(self):
+        """Find the investment PDF file in various possible locations"""
+        possible_paths = [
+            # Common locations relative to the current file
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "gemma_value_investing_reference.pdf"),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "gemma_value_investing_reference.pdf"),
+            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "gemma_value_investing_reference.pdf"),
+            # Add more possible locations if needed
         ]
-        return random.choice(advices)
+        
+        for path in possible_paths:
+            if os.path.exists(path):
+                return path
+        
+        return None
+    def _get_relevant_context(self, query, max_chunks=5):
+        """Get the most relevant context from the vector store"""
+        if not self.rag_ready or not self.vectorstore:
+            print("⚠️ RAG system not initialized, skipping context retrieval")
+            return ""
+        
+        try:
+            print(f"🔍 Finding relevant context for query: {query}")
+            start_time = time.time()
+            
+            # Get documents from vector store
+            relevant_docs = self.vectorstore.similarity_search(
+                query, 
+                k=max_chunks  # Limit to top relevant chunks
+            )
+            
+            # Extract and join the content
+            context = "\n".join([doc.page_content for doc in relevant_docs])
+            
+            end_time = time.time()
+            print(f"✅ Retrieved {len(relevant_docs)} relevant chunks in {end_time - start_time:.2f} seconds")
+            
+            # Print a preview of the retrieved context
+            preview = context[:100] + "..." if len(context) > 100 else context
+            print(f"📑 Context preview: {preview}")
+            
+            return context
+            
+        except Exception as e:
+            print(f"❌ Error retrieving context: {e}")
+            return ""
+    
+    def get_ai_advice(self, query, context=None):
+        """
+        Get AI investment advice using RAG with PDF knowledge
+        
+        Args:
+            query (str): The user's investment question
+            context (dict, optional): Additional context like portfolio data
+            
+        Returns:
+            str: Investment advice from the AI model
+        """
+        # Track execution time
+        start_time = time.time()
+        
+        # Check for empty query
+        if not query or query.strip() == "":
+            print("⚠️ Empty query received")
+            return "Please ask a specific investment question to get advice."
+        
+        print(f"❓ Processing query: '{query}'")
+        
+        try:
+            # 1. Get relevant context from our knowledge base
+            knowledge_context = self._get_relevant_context(query)
+            
+            # 2. Add user context if available
+            user_context = ""
+            if context:
+                user_context = "User context: " + ". ".join([f"{key}: {value}" for key, value in context.items()])
+                print(f"👤 Added user context: {user_context}")
+            
+            # 3. Prepare the prompt with context and clear instructions
+            prompt = f"""Question: {query}
 
+Knowledge context: {knowledge_context}
+
+{user_context}
+
+Based on the provided knowledge context, explain the main reasons why {query.lower()} Answer in 2-3 complete sentences without repetition."""
+            
+            # 4. Call Ollama API with timeout limit
+            print("🤖 Calling Ollama API...")
+            api_url = "http://localhost:11434/api/chat"
+            
+            payload = {
+    "model": "gemma:2b",
+    "messages": [
+        {
+            "role": "system",
+            "content": "You are an investment advisor who provides concise, factual answers. Avoid repetition and focus on the most important points from the provided context."
+        },
+        {
+            "role": "user",
+            "content": prompt
+        }
+    ],
+    "stream": False,
+    "options": {
+        "temperature": 0.2,    # Slightly higher to reduce repetition loops
+        "max_tokens": 150,     # More limited to prevent runaway repetition 
+        "top_p": 0.85,         # Slightly lower for more focused responses
+        "frequency_penalty": 1.0  # Add this to discourage repetition
+    }
+}
+            
+            # Set a reasonable timeout to prevent UI freezing (adjust as needed)
+            response = requests.post(api_url, json=payload, timeout=45)
+            
+            if response.status_code == 200:
+                result = response.json()
+                if "message" in result and "content" in result["message"]:
+                    answer = result["message"]["content"]
+                    # Calculate and log the response time
+                    end_time = time.time()
+                    print(f"✅ Got response in {end_time - start_time:.2f} seconds")
+                    print(f"📝 Response length: {len(answer)} characters")
+                    return answer
+                else:
+                    print("⚠️ No content in Ollama response:", result)
+            else:
+                print(f"❌ Ollama API error: {response.status_code} - {response.text}")
+            
+            # If we get here, the Ollama API failed
+            raise Exception(f"Failed to get response from Ollama API: {response.status_code}")
+                
+        except requests.exceptions.Timeout:
+            print("⚠️ Ollama API timeout - response took too long")
+            return "I apologize, but the response is taking longer than expected. Please try a more specific question or try again later."
+            
+        except Exception as e:
+            print(f"❌ Error getting AI advice: {e}")
+            
+            # Fallback to random advice messages
+            advices = [
+                "השוק תנודתי - שקול השקעה מבוזרת!",
+                "האם בדקת את המדדים הטכניים לפני הרכישה?",
+                "מומלץ להחזיק מניות לטווח ארוך כדי להפחית סיכונים.",
+                "השקעה במניות טכנולוגיה היא מגמה עכשווית, אך יש לשים לב לסיכונים."
+            ]
+            return random.choice(advices)
+        
     def login(self, username, password):
         """Authenticate user"""
         try:
@@ -449,8 +653,24 @@ class MockStockModel:
                 json={"username": username, "password": password, "email": email}
             )
             
-            return response.status_code == 200
-                
+            # If registration is successful, store user data including profile picture
+            if response.status_code == 200:
+                try:
+                    user_data = response.json()
+                    # Store profile picture URL if available in the response
+                    if "profilePictureUrl" in user_data:
+                        self.profile_picture_url = user_data["profilePictureUrl"]
+                    # Store user ID if available
+                    if "userId" in user_data:
+                        self.user_id = user_data["userId"]
+                except:
+                    # If response doesn't contain JSON data, that's okay - just continue
+                    pass
+                    
+                return True
+            else:
+                return False
+            
         except Exception as e:
             print(f"Register API error: {str(e)}")
             return False
@@ -532,3 +752,71 @@ class MockStockModel:
                 "webUrl": "",
                 "country": "Unknown"
             }
+
+    def get_profile_picture_url(self, user_id=None):
+        try:
+            print(f"API base URL: {self.api_base_url}")
+            # If no user_id is specified, use the current logged-in user
+            if user_id is None and hasattr(self, 'user_id'):
+                user_id = self.user_id
+                print(f"Using current user ID: {user_id}")
+            elif user_id is None:
+                print("No user ID available")
+                return ""
+                
+            # Check if we already have the profile picture URL stored
+            if hasattr(self, 'profile_picture_url') and self.profile_picture_url:
+                print(f"Using cached profile picture URL: {self.profile_picture_url}")
+                return self.profile_picture_url
+                
+            # Otherwise, fetch it from the API
+            api_url = f"{self.api_base_url}/auth/queries/user/{user_id}"
+            print(f"Fetching user data from: {api_url}")
+            
+            headers = self.get_auth_headers()
+            print(f"Using headers: {headers}")
+            
+            response = requests.get(api_url, headers=headers)
+            
+            print(f"API response status: {response.status_code}")
+            if response.status_code == 200:
+                user_data = response.json()
+                print(f"User data received: {user_data}")
+                
+                if "profilePictureUrl" in user_data and user_data["profilePictureUrl"]:
+                    self.profile_picture_url = user_data["profilePictureUrl"]
+                    print(f"Found profile picture URL: {self.profile_picture_url}")
+                    return self.profile_picture_url
+                else:
+                    print("No profile picture URL in user data")
+            else:
+                print(f"Failed to get user data. Response: {response.text}")
+                    
+            return ""
+            
+        except Exception as e:
+            print(f"Error getting profile picture URL: {str(e)}")
+            return ""
+            
+    def get_auth_headers(self):
+        """Get headers for authenticated API requests"""
+        headers = {"Content-Type": "application/json"}
+        if hasattr(self, 'token') and self.token:
+            headers["Authorization"] = f"Bearer {self.token}"
+        return headers
+    
+    
+if __name__ == "__main__":
+    model = MockStockModel()
+    # Wait a moment for initialization to complete
+    time.sleep(2)
+    
+    # Test with a sample query
+    test_query = "Why is chasing hot growth stocks or new IPOs so risky?"
+    print("\n" + "-"*50)
+    print(f"TEST QUERY: {test_query}")
+    print("-"*50)
+    response = model.get_ai_advice(test_query)
+    print("-"*50)
+    print(f"RESPONSE: {response}")
+    print("-"*50)

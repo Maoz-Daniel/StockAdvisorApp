@@ -5,7 +5,9 @@ from PySide6.QtWidgets import (
     QHeaderView, QFrame, QTabWidget,
     QGraphicsDropShadowEffect, QApplication, QScrollArea,
 )
-from PySide6.QtGui import QColor, QPixmap, QIcon, QPainter
+import requests
+
+from PySide6.QtGui import QColor, QPixmap, QIcon, QPainter,QPainterPath
 from PySide6.QtCore import Qt, QDate, QSize, QByteArray
 
 from presenters.main_presenter import MainPresenter
@@ -44,6 +46,9 @@ class MainView(QMainWindow):
         # Load data from presenter
         self.presenter.load_user_data()
         self.presenter.display_cached_data()
+
+        self.showFullScreen()  
+
 
         print(f"MainView.__init__: Received model with username: {model.get_username()}")
 
@@ -238,10 +243,35 @@ class MainView(QMainWindow):
         # Header layout
         header_layout = QHBoxLayout(self.header_frame)
         header_layout.setContentsMargins(20, 20, 20, 20)
+        
+        # Profile picture (new addition)
+        self.profile_pic_label = QLabel()
+        self.profile_pic_label.setFixedSize(90, 90)
+        self.profile_pic_label.setScaledContents(True)
+        self.profile_pic_label.setObjectName("profile-pic")
+        
+        # Set a default placeholder image
+        self.profile_pic_label.setStyleSheet("""
+            QLabel#profile-pic {
+                background-color: #E2E8F0;
+                border-radius: 45px;
+                border: 2px solid #CBD5E1;
+            }
+        """)
+        
+        # Load profile picture if available
+        self.load_profile_picture()
 
-        # Left side with welcome message
-        left_layout = QVBoxLayout()
-
+        # Left side with welcome message and profile pic
+        left_layout = QHBoxLayout()
+        
+        # Add profile picture
+        left_layout.addWidget(self.profile_pic_label)
+        left_layout.addSpacing(18)
+        
+        # User greeting section
+        user_info_layout = QVBoxLayout()
+        
         # Welcome label
         self.label = QLabel("Welcome, Loading...")
         self.label.setObjectName("welcome-label")
@@ -251,8 +281,11 @@ class MainView(QMainWindow):
         subtitle = QLabel(f"Today is {current_date}")
         subtitle.setObjectName("subtitle-label")
 
-        left_layout.addWidget(self.label)
-        left_layout.addWidget(subtitle)
+        user_info_layout.addWidget(self.label)
+        user_info_layout.addWidget(subtitle)
+        user_info_layout.addStretch()
+        
+        left_layout.addLayout(user_info_layout)
         left_layout.addStretch()
 
         # Right side with account summary
@@ -281,6 +314,64 @@ class MainView(QMainWindow):
         header_layout.addWidget(right_frame, 3)
 
         self.main_layout.addWidget(self.header_frame)
+
+    def load_profile_picture(self):
+        """Load the user's profile picture from URL"""
+        print("Attempting to load profile picture...")
+        
+        if not hasattr(self, 'model') or not self.model:
+            print("Model not available, can't load profile picture")
+            return
+            
+        # Get profile picture URL from model
+        profile_pic_url = self.model.get_profile_picture_url()
+        print(f"Profile picture URL from model: {profile_pic_url}")
+        
+        if not profile_pic_url:
+            print("No profile picture URL available")
+            return
+            
+        try:
+            # Download the image
+            print(f"Downloading image from: {profile_pic_url}")
+            response = requests.get(profile_pic_url)
+            print(f"Image download status: {response.status_code}")
+            
+            if response.status_code == 200:
+                print(f"Image downloaded, content length: {len(response.content)}")
+                
+                # Create a QPixmap from the image data
+                pixmap = QPixmap()
+                load_success = pixmap.loadFromData(response.content)
+                print(f"Pixmap load success: {load_success}")
+                
+                if not load_success:
+                    print("Failed to load image data into QPixmap")
+                    return
+                    
+                print(f"Pixmap size: {pixmap.width()}x{pixmap.height()}")
+                
+                # Create a rounded mask for the image
+                rounded_pixmap = QPixmap(pixmap.size())
+                rounded_pixmap.fill(Qt.transparent)
+                
+                painter = QPainter(rounded_pixmap)
+                painter.setRenderHint(QPainter.Antialiasing)
+                path = QPainterPath()
+                path.addEllipse(0, 0, pixmap.width(), pixmap.height())
+                painter.setClipPath(path)
+                painter.drawPixmap(0, 0, pixmap)
+                painter.end()
+                
+                # Set the rounded image to the label
+                self.profile_pic_label.setPixmap(rounded_pixmap)
+                print("Profile picture set successfully")
+            else:
+                print(f"Failed to download image. Response: {response.text}")
+        except Exception as e:
+            print(f"Error loading profile picture: {str(e)}")
+            import traceback
+            traceback.print_exc()
 
     def connect_signals(self):
         """Connect all UI signals to presenter methods after presenter is created"""

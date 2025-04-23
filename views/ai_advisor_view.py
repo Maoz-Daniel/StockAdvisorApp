@@ -24,26 +24,12 @@ class AIAdvisorWindow(QWidget):
             from presenters.ai_advisor_presenter import AIAdvisorPresenter
             self.presenter = AIAdvisorPresenter(self, self.model)
         except ImportError:
-            # Create a fallback presenter if the import fails
-            class SimplePresenter:
-                def __init__(self, view, model):
-                    self.view = view
-                    self.model = model
-                
-                def run_ai_analysis(self):
-                    self.view.update_analysis_button_text("🔄 Analyzing...")
-                    self.view.set_analysis_button_enabled(False)
-                    QTimer.singleShot(1500, self.finish_analysis)
-                
-                def finish_analysis(self):
-                    response = "I'm your AI Investment Advisor. I can provide personalized investment recommendations and market analysis."
-                    self.view.add_new_insight(response)
-                    self.view.update_analysis_button_text("Send")
-                    self.view.set_analysis_button_enabled(True)
-            
-            self.presenter = SimplePresenter(self, self.model)
+            print("Error importing AIAdvisorPresenter. Using a simple presenter instead.")
         
         self.init_ui()
+        #do full screen
+        self.showFullScreen()  # Uncomment to start in full screen mode
+
     
     def init_ui(self):
         """Initialize the UI components"""
@@ -495,7 +481,9 @@ class AIAdvisorWindow(QWidget):
         user_text = self.input_field.toPlainText().strip()
         if not user_text:
             return
-            
+        
+        self.presenter.set_query(user_text)
+
         # Create user message
         user_message = self.create_user_message(user_text)
         user_message.setMaximumHeight(0)
@@ -503,7 +491,8 @@ class AIAdvisorWindow(QWidget):
         
         # Add to layout
         self.messages_layout.insertWidget(self.messages_layout.count() - 1, user_message)
-        
+        self.input_field.clear()
+
         # Animate user message quickly
         def animate_user_message():
             user_message.setVisible(True)

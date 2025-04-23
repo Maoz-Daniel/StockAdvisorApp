@@ -5,7 +5,13 @@ class AIAdvisorPresenter:
     def __init__(self, view, model):
         """Connect the View to the model and control the AI analysis logic"""
         self.view = view
-        self.model = model  # Can be replaced with a dedicated model if exists
+        self.model = model
+        self.current_query = ""  # Add this to store the current query
+
+    def set_query(self, query):
+        """Store the query for processing"""
+        self.current_query = query
+        print(f"AIAdvisorPresenter: Query set to: {self.current_query}")
 
     def run_ai_analysis(self):
         """Run AI analysis - update analysis button, simulate delay, and return new insight"""
@@ -18,11 +24,11 @@ class AIAdvisorPresenter:
 
     def finish_analysis(self):
         """Send the AI insight from the model to update the View"""
-        # Get the user's message from the input field
-        user_query = self.view.input_field.toPlainText().strip()
+        # Use the stored query instead of getting it from the input field
+        print(f"AIAdvisorPresenter: Processing query: {self.current_query}")
         
         # Get AI advice from model
-        new_insight = self.model.get_ai_advice(user_query)
+        new_insight = self.model.get_ai_advice(self.current_query)
         
         # Update the view with new insight
         self.view.add_new_insight(new_insight)
