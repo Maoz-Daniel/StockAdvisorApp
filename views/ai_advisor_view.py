@@ -3,7 +3,7 @@ import re
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
                               QTextEdit, QPushButton, QFrame, QScrollArea, 
                               QSizePolicy, QSpacerItem, QMenu)
-from PySide6.QtCore import Qt, QSize, Signal, QTimer, QByteArray
+from PySide6.QtCore import Qt, QSize, Signal, QTimer, QByteArray, QPropertyAnimation, QEasingCurve
 from PySide6.QtGui import QIcon, QFont, QColor, QPixmap, QPainter
 from PySide6.QtSvg import QSvgRenderer
 
@@ -229,7 +229,22 @@ class AIAdvisorWindow(QWidget):
         
         input_layout.addWidget(self.input_field, 1)
         input_layout.addWidget(self.send_button)
-        
+
+
+        self.loading_indicator = QLabel("Analyzing your question...")
+        self.loading_indicator.setAlignment(Qt.AlignCenter)
+        self.loading_indicator.setStyleSheet("""
+            color: #1c2c3f;
+            background-color: #F3F4F6;
+            border-radius: 12px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 500;
+        """)
+        self.loading_indicator.setVisible(False)
+
+        # Add the loading indicator to the chat layout
+        chat_layout.addWidget(self.loading_indicator)
         chat_layout.addWidget(input_container)
         
         # Add chat frame to content layout
@@ -246,7 +261,16 @@ class AIAdvisorWindow(QWidget):
         
         # Add the main scroll area to the main layout
         main_layout.addWidget(main_scroll_area)
+
+
+    def show_loading_indicator(self):
+        """Show the loading indicator"""
+        self.loading_indicator.setVisible(True)
         
+    def hide_loading_indicator(self):
+        """Hide the loading indicator"""
+        self.loading_indicator.setVisible(False)
+
     def create_header_bar(self):
         """Create a visible header bar with logo and navigation buttons"""
         # Create header frame

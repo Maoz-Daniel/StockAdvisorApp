@@ -488,7 +488,7 @@ class MainView(QMainWindow):
         self.btn_ai_advisor.setStyleSheet("""
         QPushButton {
             background-color: rgba(59, 130, 246, 0.2);
-            color: #93C5FD;
+            color: #4D8ED8;
             border: none;
             border-radius: 10px;
             padding: 15px 20px;
@@ -520,7 +520,7 @@ class MainView(QMainWindow):
         self.btn_trade_history.setStyleSheet("""
     QPushButton {
         background-color: rgba(168, 85, 247, 0.2);
-        color: #C4B5FD;
+        color: #9B8ECD;
         border: none;
         border-radius: 10px;
         padding: 15px 20px;
@@ -823,7 +823,6 @@ class MainView(QMainWindow):
                 item.setTextAlignment(Qt.AlignCenter)
                 self.stock_table.setItem(row, col, item)
 
-    # Menu navigation methods - minimal implementations required for UI connections
     def open_dashboard(self):
         pass
 

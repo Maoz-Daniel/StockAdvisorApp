@@ -813,6 +813,9 @@ if __name__ == "__main__":
     
     # Test with a sample query
     test_query = "Why is chasing hot growth stocks or new IPOs so risky?"
+    #How often should defensive investors rebalance?
+    #When is a bear market good?
+    #What stock P/E limit?
     print("\n" + "-"*50)
     print(f"TEST QUERY: {test_query}")
     print("-"*50)
