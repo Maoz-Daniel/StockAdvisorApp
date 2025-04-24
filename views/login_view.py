@@ -37,8 +37,6 @@ class LoginDialog(QDialog):
         self.register_button.clicked.connect(self.on_register_clicked)
         self.show_password_button.clicked.connect(self.toggle_password_visibility)
         
-        # Start floating elements animation
-        self._start_float_animation()
     
     def _apply_stylesheet(self):
         """Apply stylesheet to the dialog"""
@@ -394,7 +392,7 @@ class LoginDialog(QDialog):
         buttons_layout = QHBoxLayout()
         buttons_layout.setSpacing(15)
         
-        self.watch_demo = QPushButton("Pro Plan")  # Added play icon
+        self.watch_demo = QPushButton("Premium Experience")  # Added play icon
         self.watch_demo.setObjectName("watch-demo")
         buttons_layout.addWidget(self.watch_demo)
         
@@ -541,7 +539,7 @@ class LoginDialog(QDialog):
         form_layout.addWidget(self.loading_widget)
         
         # Position the floating elements
-        self.chart_float.setParent(form_container)
+        # self.chart_float.setParent(form_container)
         
         # Center the form in the container
         form_container_layout.addWidget(form_section, 0, Qt.AlignCenter)
@@ -570,40 +568,7 @@ class LoginDialog(QDialog):
         
         return pixmap
         
-    def _start_float_animation(self):
-        """Start the floating animation for elements"""
-        # Chart float animation
-        self.chart_anim = QPropertyAnimation(self.chart_float, b"geometry")
-        self.chart_anim.setDuration(3000)
-        self.chart_anim.setStartValue(QRect(-40, 10, 60, 30))
-        self.chart_anim.setEndValue(QRect(350, 10, 60, 30))
-        self.chart_anim.setEasingCurve(QEasingCurve.OutCubic)
-        self.chart_anim.start()
-        
-        # Setup pulse animation timer
-        self.pulse_timer = QTimer(self)
-        self.pulse_timer.timeout.connect(self._pulse_elements)
-        self.pulse_timer.start(3000)  # Pulse every 3 seconds
     
-    def _pulse_elements(self):
-        """Create a pulse effect for floating elements"""
-        # Chart element pulse
-        chart_pulse = QPropertyAnimation(self.chart_float, b"geometry")
-        chart_pulse.setDuration(1000)
-        current_geom = self.chart_float.geometry()
-        
-        # Slightly grow and then shrink back
-        chart_pulse.setStartValue(current_geom)
-        bigger_geom = QRect(
-            current_geom.x() - 2,
-            current_geom.y() - 2,
-            current_geom.width() + 4,
-            current_geom.height() + 4
-        )
-        chart_pulse.setKeyValueAt(0.5, bigger_geom)
-        chart_pulse.setEndValue(current_geom)
-        chart_pulse.setEasingCurve(QEasingCurve.InOutQuad)
-        chart_pulse.start()
     
     def set_presenter(self, presenter):
         """Set the presenter for this view"""

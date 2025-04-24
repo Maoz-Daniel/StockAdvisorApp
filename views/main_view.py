@@ -603,7 +603,7 @@ class MainView(QMainWindow):
         cash_layout = QVBoxLayout()
         cash_label = QLabel("Cash Balance")
         cash_label.setStyleSheet("color: #666666; font-size: 13px;")
-        cash_amount = QLabel("$24,325.00")
+        cash_amount = QLabel("$13,942.33")
         cash_amount.setObjectName("value-text")
         cash_layout.addWidget(cash_label)
         cash_layout.addWidget(cash_amount)

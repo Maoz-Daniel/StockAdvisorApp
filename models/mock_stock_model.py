@@ -8,10 +8,8 @@ from langchain.text_splitter import CharacterTextSplitter
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
-
 from langchain.chains import RetrievalQA
 from langchain_community.llms import Ollama
-
 from datetime import datetime, timedelta
 
 class MockStockModel:
@@ -88,9 +86,7 @@ class MockStockModel:
                 
         except Exception as e:
             error_message = f"Error searching for symbol: {str(e)}"
-            print(error_message)
-            
-           
+            print(error_message)      
     
     def get_stock_history(self, symbol, start_date=None, end_date=None):
         """
@@ -132,7 +128,6 @@ class MockStockModel:
             # Generate mock data as fallback
             return self.generate_mock_history(symbol)
         
-    
     def get_current_price(self, symbol):
         """Get current price for a stock"""
         try:
