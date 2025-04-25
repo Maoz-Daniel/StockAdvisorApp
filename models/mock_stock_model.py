@@ -807,7 +807,8 @@ if __name__ == "__main__":
     time.sleep(2)
     
     # Test with a sample query
-    test_query = "Why is chasing hot growth stocks or new IPOs so risky?"
+    test_query = "What stock P/E limit?"
+    #Why is chasing hot growth stocks or new IPOs so risky?
     #How often should defensive investors rebalance?
     #When is a bear market good?
     #What stock P/E limit?
